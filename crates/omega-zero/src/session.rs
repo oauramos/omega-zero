@@ -119,6 +119,15 @@ impl Session {
         }
     }
 
+    /// What the frontend's own clock ticks at: the game's period while its core is paced by
+    /// the frontend, the UI's otherwise.
+    pub fn frame_clock(&self) -> crate::pacing::FrameClock {
+        self.emu
+            .as_ref()
+            .filter(|emu| emu.locked())
+            .map_or_else(crate::pacing::FrameClock::default, EmuHandle::frame_clock)
+    }
+
     pub fn step_emulator(&self, present: Duration, timeout: Duration) -> bool {
         self.emu.as_ref().is_some_and(|emu| {
             emu.tick(present);
@@ -242,6 +251,13 @@ impl Session {
         }
         if let Some(on) = self.app.take_colour_correction() {
             if let Some((key, value)) = crate::core::colour_option(self.app.core(), on) {
+                if let Some(emu) = &self.emu {
+                    emu.set_option(key, value);
+                }
+            }
+        }
+        if let Some(on) = self.app.take_lcd_ghosting() {
+            if let Some((key, value)) = crate::core::ghosting_option(self.app.core(), on) {
                 if let Some(emu) = &self.emu {
                     emu.set_option(key, value);
                 }
@@ -425,6 +441,7 @@ impl Session {
             Platform::Gba | Platform::Gb | Platform::Gbc => Setup::Handheld {
                 serial,
                 colour: self.app.colour_correction(),
+                ghosting: self.app.lcd_ghosting(),
                 link: player,
             },
         };

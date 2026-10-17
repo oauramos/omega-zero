@@ -509,20 +509,61 @@ fn y_on_its_own_is_untouched_by_the_colour_chord() {
     assert_eq!(g.feed(Up(Y), 40), vec![GbaUp(Y)]);
 }
 
+#[test]
+fn select_and_x_toggles_lcd_ghosting_and_costs_the_game_nothing() {
+    let mut g = Gestures::new();
+    assert!(g.feed(Down(Select), 0).is_empty());
+    assert_eq!(g.feed(Down(X), 10), vec![LcdGhostingToggle]);
+    assert!(
+        g.feed(Up(X), 40).is_empty(),
+        "the chord's X reached the game"
+    );
+    assert!(g.feed(Up(Select), 200).is_empty());
+    assert!(g.tick(5_000).is_empty());
+}
+
+#[test]
+fn x_on_its_own_is_untouched_by_the_ghosting_chord() {
+    let mut g = Gestures::new();
+    assert_eq!(g.feed(Down(X), 0), vec![GbaDown(X)]);
+    assert_eq!(g.feed(Up(X), 40), vec![GbaUp(X)]);
+}
+
+#[test]
+fn select_x_and_select_y_are_two_chords_under_one_select() {
+    let mut g = Gestures::new();
+    assert!(g.feed(Down(Select), 0).is_empty());
+    assert_eq!(g.feed(Down(X), 10), vec![LcdGhostingToggle]);
+    assert_eq!(g.feed(Down(Y), 20), vec![ColourCorrectionToggle]);
+    assert!(g.feed(Up(X), 30).is_empty());
+    assert!(g.feed(Up(Y), 40).is_empty());
+    assert!(g.feed(Up(Select), 50).is_empty());
+}
+
+#[test]
+fn an_x_held_for_the_game_before_select_is_let_go_to_the_game() {
+    let mut g = Gestures::new();
+    assert_eq!(g.feed(Down(X), 0), vec![GbaDown(X)]);
+    assert!(g.feed(Down(Select), 10).is_empty());
+    assert_eq!(g.feed(Up(X), 20), vec![GbaUp(X)]);
+}
+
 /// The PlayStation's keys: its games have L2 and R2, nothing rewinds them, and a television's
-/// picture has no colour correction.
+/// picture has no colour correction nor an LCD's ghosting.
 const PS1: Keys = Keys {
     game_l2_r2: true,
     rewind: false,
     colour: false,
+    ghosting: false,
 };
 
 /// The SNES's keys: L2 rewinds and R2 fast-forwards as on the handhelds, and a television's
-/// picture has no colour correction.
+/// picture has no colour correction nor an LCD's ghosting.
 const SNES: Keys = Keys {
     game_l2_r2: false,
     rewind: true,
     colour: false,
+    ghosting: false,
 };
 
 fn with_keys(keys: Keys) -> Gestures {
@@ -651,6 +692,16 @@ fn select_and_y_is_the_games_where_there_is_no_colour_correction() {
         assert!(g.feed(Down(Select), 0).is_empty());
         assert_eq!(g.feed(Down(Y), 10), vec![GbaDown(Select), GbaDown(Y)]);
         assert_eq!(g.feed(Up(Y), 40), vec![GbaUp(Y)]);
+    }
+}
+
+#[test]
+fn select_and_x_is_the_games_where_there_is_no_lcd_ghosting() {
+    for keys in [PS1, SNES] {
+        let mut g = with_keys(keys);
+        assert!(g.feed(Down(Select), 0).is_empty());
+        assert_eq!(g.feed(Down(X), 10), vec![GbaDown(Select), GbaDown(X)]);
+        assert_eq!(g.feed(Up(X), 40), vec![GbaUp(X)]);
     }
 }
 

@@ -214,6 +214,13 @@ impl FbdevSurface {
             }
             (egl.swap_interval)(display, 1);
             let size = query_size(&egl, display, surface).unwrap_or(hint);
+            match crate::displaycal::apply_device() {
+                Ok(Some(target)) => {
+                    eprintln!("omega-zero: display calibration: {target} panel table on")
+                }
+                Ok(None) => {}
+                Err(e) => eprintln!("omega-zero: display calibration: {e}"),
+            }
             Ok(FbdevSurface {
                 egl,
                 gles,

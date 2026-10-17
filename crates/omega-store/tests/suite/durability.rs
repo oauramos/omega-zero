@@ -169,6 +169,8 @@ fn a_first_boot_rumbles_and_fast_forwards_silently_at_the_default() {
     assert_eq!(s.ff_speed, FF_SPEED_DEFAULT);
     assert!(!s.ff_sound, "boots with fast forward audible");
     assert!(!s.colour_correction, "boots with the picture tinted");
+    assert!(s.lcd_ghosting, "boots with the LCD's ghosting off");
+    assert!(s.high_refresh, "boots asking the panel for 60 Hz");
     assert!(!s.wifi, "boots with the radio on");
 }
 
@@ -197,6 +199,8 @@ fn a_card_from_before_the_settings_keeps_all_its_values() {
             ff_speed: FF_SPEED_DEFAULT,
             ff_sound: false,
             colour_correction: false,
+            lcd_ghosting: true,
+            high_refresh: true,
             wifi: false,
             ssh: true,
             bluetooth: false,
@@ -231,6 +235,79 @@ fn the_quick_menu_settings_round_trip_as_their_own_lines() {
         "wifi=1",
     ] {
         assert!(text.lines().any(|l| l == line), "no {line} in {text:?}");
+    }
+}
+
+#[test]
+fn lcd_ghosting_round_trips_as_its_own_line_and_is_on_when_absent() {
+    for on in [false, true] {
+        let d = tmp_root();
+        let s = AppState {
+            clock_set: true,
+            lcd_ghosting: on,
+            ..AppState::default()
+        };
+        write_app_state(d.path(), &s).unwrap();
+        assert_eq!(
+            read_app_state(d.path()),
+            s,
+            "ghosting {on} did not come back"
+        );
+        let text = std::fs::read_to_string(d.path().join("Config/omega-zero.state")).unwrap();
+        let want = format!("lcd_ghosting={}", on as u8);
+        assert!(text.lines().any(|l| l == want), "no {want} in {text:?}");
+    }
+    let d = tmp_root();
+    let known = "cart=Emerald\nbrightness=3\nblue_light=1\nvolume=40\nmuted=0\nclock_set=1\nutc_offset_min=0\n";
+    for (extra, want) in [
+        ("", true),
+        ("lcd_ghosting=0\n", false),
+        ("lcd_ghosting=1\n", true),
+        ("lcd_ghosting=2\n", true),
+        ("lcd_ghosting=\n", true),
+        ("lcd_ghosting=mix\n", true),
+    ] {
+        std::fs::write(
+            d.path().join("Config/omega-zero.state"),
+            format!("{known}{extra}"),
+        )
+        .unwrap();
+        let s = read_app_state(d.path());
+        assert_eq!(s.lcd_ghosting, want, "{extra:?}");
+        assert_eq!(
+            s.cart.as_deref(),
+            Some("Emerald"),
+            "{extra:?} lost the card"
+        );
+    }
+}
+
+#[test]
+fn high_refresh_is_on_by_default_and_only_a_clear_1_keeps_it_on() {
+    let d = tmp_root();
+    let known = "cart=Emerald\nbrightness=3\nblue_light=1\nvolume=40\nmuted=0\nclock_set=1\nutc_offset_min=0\n";
+    for (extra, want) in [
+        ("", true),
+        ("high_refresh=1\n", true),
+        ("high_refresh=0\n", false),
+        ("high_refresh=2\n", false),
+        ("high_refresh=\n", false),
+    ] {
+        std::fs::write(
+            d.path().join("Config/omega-zero.state"),
+            format!("{known}{extra}"),
+        )
+        .unwrap();
+        assert_eq!(read_app_state(d.path()).high_refresh, want, "{extra:?}");
+    }
+    for on in [false, true] {
+        let s = AppState {
+            clock_set: true,
+            high_refresh: on,
+            ..AppState::default()
+        };
+        write_app_state(d.path(), &s).unwrap();
+        assert_eq!(read_app_state(d.path()), s);
     }
 }
 

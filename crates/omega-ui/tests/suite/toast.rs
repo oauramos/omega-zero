@@ -62,6 +62,14 @@ fn colour_correction_says_whether_it_is_on() {
 }
 
 #[test]
+fn lcd_ghosting_says_whether_it_is_on() {
+    assert_eq!(Toast::GhostingOn.text(), "Ghosting on");
+    assert_eq!(Toast::GhostingOff.text(), "Ghosting off");
+    assert_eq!(Toast::GhostingOn.label(), "GHOSTING");
+    assert_eq!(Toast::GhostingOff.label(), "GHOSTING");
+}
+
+#[test]
 fn every_link_toast_is_said_under_link() {
     for t in [
         Toast::NeedsGpsp,
@@ -88,6 +96,8 @@ fn the_banner_says_what_happened_and_never_what_is_on_screen() {
             Toast::BiosMismatch,
             Toast::ColourOn,
             Toast::ColourOff,
+            Toast::GhostingOn,
+            Toast::GhostingOff,
             Toast::OneDisc,
             Toast::Disc(1),
         ],

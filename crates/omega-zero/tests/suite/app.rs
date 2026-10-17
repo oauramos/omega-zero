@@ -2324,6 +2324,49 @@ fn the_colour_shortcut_names_the_state_it_arrived_at() {
     }
 }
 
+#[test]
+fn the_ghosting_shortcut_reaches_the_core_already_running() {
+    let d = common::tmp_root_with_carts(&["Emerald", "Fusion"]);
+    let (mut s, _motor) = common::session_with_platform(d.path());
+    s.app_mut().apply(omega_input::Action::Insert);
+
+    let before = s.app().lcd_ghosting();
+    s.app_mut().apply(omega_input::Action::LcdGhostingToggle);
+
+    assert_eq!(
+        s.app().lcd_ghosting(),
+        !before,
+        "the shortcut did not flip it"
+    );
+    assert_eq!(
+        s.app_mut().take_lcd_ghosting(),
+        Some(!before),
+        "the change was never queued for the core already running"
+    );
+    assert_eq!(
+        s.app_mut().take_colour_correction(),
+        None,
+        "the ghosting shortcut touched the colour correction"
+    );
+}
+
+#[test]
+fn the_ghosting_shortcut_names_the_state_it_arrived_at() {
+    let d = common::tmp_root_with_carts(&["Emerald", "Fusion"]);
+    let (mut s, _motor) = common::session_with_platform(d.path());
+    s.app_mut().apply(omega_input::Action::Insert);
+    assert!(
+        s.app().lcd_ghosting(),
+        "a fresh card boots with ghosting off"
+    );
+
+    for want in [omega_ui::Toast::GhostingOff, omega_ui::Toast::GhostingOn] {
+        s.app_mut().apply(omega_input::Action::LcdGhostingToggle);
+        assert_eq!(s.app().toast(), Some(want));
+        assert_eq!(want.label(), "GHOSTING");
+    }
+}
+
 /// Runs `a` on for `ms`, in frames, as the frontend would: what the pill shows is baked again
 /// whenever it is cleared, as sync_clock does.
 fn run_pill(a: &mut App, ms: u64, face: TexId) {

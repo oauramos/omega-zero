@@ -138,6 +138,7 @@ fn up_and_down_move_the_bar_and_wrap_at_the_ends() {
         SettingsRow::FastForward,
         SettingsRow::FastForwardSound,
         SettingsRow::ColourCorrection,
+        SettingsRow::LcdGhosting,
         SettingsRow::Rumble,
         SettingsRow::Labels,
         SettingsRow::DateTime,
@@ -195,6 +196,7 @@ fn rumble_and_fast_forward_sound_flip_on_either_arrow_and_save() {
     assert_eq!(card(&d), (false, true));
     press(&mut a, Btn::Down);
     press(&mut a, Btn::Down);
+    press(&mut a, Btn::Down);
     press(&mut a, Btn::Right);
     assert_eq!(card(&d), (false, false));
     assert!(!a.rumble_enabled());
@@ -233,6 +235,56 @@ fn colour_correction_flips_on_either_arrow_and_saves() {
             Some(QuickValue::flag(want))
         );
     }
+}
+
+#[test]
+fn lcd_ghosting_is_on_by_default_flips_on_either_arrow_and_saves() {
+    let (d, mut a, _) = on_carousel();
+    open_at(&mut a, SettingsRow::LcdGhosting);
+    assert!(
+        a.lcd_ghosting(),
+        "the row did not open on the default, which is on"
+    );
+    assert_eq!(
+        a.settings_value(SettingsRow::LcdGhosting),
+        Some(QuickValue::On)
+    );
+    assert_eq!(SettingsRow::LcdGhosting.label(), "LCD Ghosting");
+    assert_eq!(SettingsRow::LcdGhosting.group(), SettingsGroup::Configs);
+    assert!(SettingsRow::LcdGhosting.carets() && !SettingsRow::LcdGhosting.opens());
+    for (btn, want) in [
+        (Btn::Right, false),
+        (Btn::Left, true),
+        (Btn::Left, false),
+        (Btn::Right, true),
+    ] {
+        press(&mut a, btn);
+        assert_eq!(a.lcd_ghosting(), want, "{btn:?}");
+        assert_eq!(
+            read_app_state(d.path()).lcd_ghosting,
+            want,
+            "{btn:?} never reached the card"
+        );
+        assert_eq!(
+            a.settings_value(SettingsRow::LcdGhosting),
+            Some(QuickValue::flag(want))
+        );
+        assert_eq!(
+            a.take_lcd_ghosting(),
+            Some(want),
+            "never queued for the core"
+        );
+        assert_eq!(a.take_colour_correction(), None);
+    }
+}
+
+#[test]
+fn lcd_ghosting_stands_under_colour_correction() {
+    let at = |r| SettingsRow::ALL.iter().position(|x| *x == r).unwrap();
+    assert_eq!(
+        at(SettingsRow::LcdGhosting),
+        at(SettingsRow::ColourCorrection) + 1
+    );
 }
 
 #[test]
@@ -405,7 +457,7 @@ fn brightness_and_volume_still_answer_over_settings() {
 /// and 111, and each row 200 and its index.
 fn fake_faces(a: &mut App) -> SettingsFaces {
     let id = TexId::from_raw;
-    let frame = settings_frame(5, palette(0));
+    let frame = settings_frame(6, palette(0));
     let mut faces = SettingsFaces::new(&frame, id(100), [(id(110), [42, 11]), (id(111), [42, 11])]);
     for row in a.settings_rows() {
         faces.rows[row.index()] = Some((id(200 + row.index()), [270, ROW_H]));
@@ -532,6 +584,7 @@ fn the_rows_say_what_is_set_in_flows_capitals() {
             text("4X"),
             text("ON"),
             text("OFF"),
+            text("ON"),
             text("ON"),
             None,
             clock_text,

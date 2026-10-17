@@ -538,6 +538,16 @@ impl Frontend {
         self.session.set_driven(true);
     }
 
+    pub fn frame_clock(&self) -> crate::pacing::FrameClock {
+        self.session.frame_clock()
+    }
+
+    /// Whether the panel runs at 120 Hz, so the loop keeps its own clock rather than count
+    /// the swaps.
+    pub fn high_refresh(&self) -> bool {
+        self.session.app().high_refresh()
+    }
+
     pub fn step_emulator(&self, present: Duration, timeout: Duration) -> bool {
         self.session.step_emulator(present, timeout)
     }

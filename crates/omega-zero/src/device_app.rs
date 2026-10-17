@@ -8,6 +8,7 @@ use omega_power::{baseos_release, trace_first_frame, DevicePlatform};
 use omega_ui::UndoFace;
 use omega_zero::frontend::Frontend;
 use omega_zero::input::DeviceInput;
+use omega_zero::pacing::FramePacer;
 
 const CARD: &str = "/mnt/sdcard";
 
@@ -158,10 +159,35 @@ pub fn run() {
     let mut drawn = false;
     frontend.drive_emulator();
     let mut pacer = Pacer::new();
+    let mut clocked = FramePacer::new(Instant::now());
     let (mut frames, mut missed, mut early) = (0u32, 0u32, 0u32);
+    let mut high = frontend.high_refresh();
+    eprintln!(
+        "omega-zero: refresh: {} Hz, the loop paced by {}",
+        if high { 120 } else { 60 },
+        if high { "its own clock" } else { "the swap" }
+    );
     loop {
-        pacer.wait();
-        let began = Instant::now();
+        // at 120 Hz a swap returns twice a game frame: the loop keeps its own clock there,
+        // ticking the game once a period of its own and presenting at the next refresh
+        if frontend.high_refresh() != high {
+            high = !high;
+            eprintln!(
+                "omega-zero: refresh: now {} Hz",
+                if high { 120 } else { 60 }
+            );
+            clocked = FramePacer::new(Instant::now());
+        }
+        let began = if high {
+            let deadline = clocked.deadline(frontend.frame_clock(), Instant::now());
+            if let Some(left) = deadline.checked_duration_since(Instant::now()) {
+                std::thread::sleep(left);
+            }
+            Instant::now()
+        } else {
+            pacer.wait();
+            Instant::now()
+        };
         frontend.advance(&mut input);
         if frontend.restarting() {
             frontend.restart();
@@ -170,7 +196,22 @@ pub fn run() {
             frontend.poweroff();
             return;
         }
-        frontend.step_emulator(pacer.period, STEP_TIMEOUT);
+        if high {
+            let due = clocked.due(frontend.frame_clock(), Instant::now());
+            for step in 0..due {
+                if step > 0 {
+                    frontend.advance(&mut input);
+                }
+                let clock = frontend.frame_clock();
+                let completed = frontend.step_emulator(clock.period, STEP_TIMEOUT);
+                clocked.stepped(clock, Instant::now());
+                if !completed {
+                    break;
+                }
+            }
+        } else {
+            frontend.step_emulator(pacer.period, STEP_TIMEOUT);
+        }
         frontend.render(&mut compositor, surface.window_size());
         let swap = Instant::now();
         let work = swap - began;
@@ -185,7 +226,14 @@ pub fn run() {
             frames += 1;
             missed += u32::from(dropped);
             early += u32::from(swap_took > pacer.period / 2);
-            if frames == 600 {
+            if frames == 600 && high {
+                eprintln!(
+                    "omega-zero: pace: 600 presents at 120 Hz, {:.2} ms a game period, {} game periods missed",
+                    frontend.frame_clock().period.as_secs_f64() * 1e3,
+                    clocked.dropped
+                );
+                (frames, missed, early) = (0, 0, 0);
+            } else if frames == 600 {
                 eprintln!(
                     "omega-zero: pace: 600 frames, {missed} missed a latch, {early} drawn early, work {:.1} ms, period {:.2} ms",
                     pacer.work.as_secs_f64() * 1e3,
@@ -197,6 +245,9 @@ pub fn run() {
         if !drawn {
             drawn = true;
             trace_first_frame();
+        }
+        if high {
+            continue;
         }
         if let Some(left) = MIN_FRAME.checked_sub(began.elapsed()) {
             std::thread::sleep(left);

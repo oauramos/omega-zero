@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use crate::refresh::PanelRefresh;
 use crate::{Battery, Charge, LedState, Platform};
 
 const TOP_STEP: u32 = 9;
@@ -80,14 +81,22 @@ pub struct DevicePlatform {
     rtc: Option<PathBuf>,
     motor: Option<Motor>,
     led: Option<Led>,
+    refresh: Option<PanelRefresh>,
 }
 
 impl DevicePlatform {
+    /// The handheld omega-zero runs on, its model the one BASEOS_TARGET names, else the one
+    /// /etc/baseos-release does.
     pub fn new(root: PathBuf) -> Self {
-        DevicePlatform::probe(Path::new("/sys"), root)
+        let target = std::env::var("BASEOS_TARGET")
+            .ok()
+            .or_else(|| crate::baseos_release().and_then(|r| r.target));
+        DevicePlatform::probe(Path::new("/sys"), root, target.as_deref())
     }
 
-    pub fn probe(sysfs: &Path, root: PathBuf) -> Self {
+    /// The handheld under `sysfs`. Its panel's refresh is only ever driven where `target`, the
+    /// BaseOS model, is one whose panel is known, and the device tree says it is that panel.
+    pub fn probe(sysfs: &Path, root: PathBuf, target: Option<&str>) -> Self {
         let class = first_dir(&sysfs.join("class/backlight"), |d| {
             d.join("brightness").is_file()
         });
@@ -127,6 +136,7 @@ impl DevicePlatform {
             rtc,
             motor,
             led,
+            refresh: target.and_then(|target| PanelRefresh::probe(sysfs, target)),
         }
     }
 
@@ -165,8 +175,12 @@ impl DevicePlatform {
             Some(m) => format!("motor {}", m.name()),
             None => "no motor".to_string(),
         };
+        let refresh = match self.refresh {
+            Some(_) => "120 Hz panel",
+            None => "60 Hz panel",
+        };
         format!(
-            "backlight {} (0 to {}), battery {}, {}, {motor}",
+            "backlight {} (0 to {}), battery {}, {}, {motor}, {refresh}",
             backlight,
             self.max_brightness,
             name(&self.battery, "no battery"),
@@ -523,6 +537,24 @@ fn processes(names: &[&str]) -> Vec<u32> {
 }
 
 impl Platform for DevicePlatform {
+    fn supports_high_refresh(&self) -> bool {
+        self.refresh.is_some()
+    }
+
+    fn set_high_refresh(&mut self, high: bool) -> bool {
+        self.refresh.as_mut().is_some_and(|r| r.set(high))
+    }
+
+    fn high_refresh_enabled(&self) -> bool {
+        self.refresh.as_ref().is_some_and(PanelRefresh::enabled)
+    }
+
+    fn resume_display(&mut self) {
+        if let Some(refresh) = &mut self.refresh {
+            refresh.resume();
+        }
+    }
+
     fn headphones(&self) -> bool {
         fs::read_to_string(self.sysfs.join("kernel/debug/gpio")).is_ok_and(|g| headphones_in(&g))
     }

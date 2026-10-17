@@ -2,6 +2,7 @@ mod baseos;
 mod device;
 mod motor;
 mod power;
+mod refresh;
 mod sim;
 
 pub use baseos::{
@@ -56,6 +57,23 @@ pub trait Platform: Send {
     fn relink_adb(&mut self) -> bool {
         false
     }
+
+    /// Whether the panel is one known to run at 120 Hz, whose registers can be set.
+    fn supports_high_refresh(&self) -> bool {
+        false
+    }
+
+    /// Runs the panel at 120 Hz, or back at 60; whether it now does, read back.
+    fn set_high_refresh(&mut self, _high: bool) -> bool {
+        false
+    }
+
+    fn high_refresh_enabled(&self) -> bool {
+        false
+    }
+
+    /// Puts back what the display lost while the lid was shut.
+    fn resume_display(&mut self) {}
 
     fn headphones(&self) -> bool {
         false

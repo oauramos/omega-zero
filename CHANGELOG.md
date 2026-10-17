@@ -1,5 +1,29 @@
 # Changelog
 
+## omega-zero 1.3.0
+
+The handhelds' games ghost as their LCDs did, and the RG SP and the RG34XX handhelds get their
+panels' own colours and twice the refresh rate.
+
+- The GBA and Game Boy games blend each frame with the last, as the LCDs they were drawn for
+  blurred them, so a game that flickers a sprite to draw it see-through, as F-Zero and the Boktai
+  games do, shows it as it was meant to be seen. mGBA mixes the two frames and gpSP its frame
+  mixing. It is on by default: LCD Ghosting, under Colour Correction in CONFIGS, turns it off, and
+  in a game SELECT+X switches it either way, as SELECT+Y does the colour correction, its toast
+  saying GHOSTING. A SNES or PlayStation game keeps SELECT+X for itself.
+- The RG SP and the RG34XX SP calibrate their panels as omega-zero starts: the display engine
+  takes a measured table of each panel's colours, its black and white points among them, and
+  applies it after everything is drawn, to the games and the menus alike, at no cost a frame.
+  The tables are inside omega-zero; nothing new goes on the card.
+- On the RG SP, the RG34XX SP and the RG34XX, the panel runs at 120 Hz, which takes about half a
+  frame off the wait between a frame being drawn and being shown. omega-zero only asks for it
+  where BaseOS names one of those handhelds and the device tree names its panel, reads it back
+  once set, and goes back to 60 Hz if it does not read back. A game still runs at its own speed:
+  at 120 Hz omega-zero keeps its own clock, ticking a game once a frame of its own and showing
+  each frame at the next refresh. The panel is set again when the lid opens; one that refused it
+  or lost it is written down in `Config/omega-zero.state` as `high_refresh=0` and kept at 60 Hz
+  from then on, and setting that by hand keeps any panel at 60 Hz.
+
 ## omega-zero 1.2.0
 
 Supafaust runs SNES games, a game that takes the console down can no longer trap it at boot, and

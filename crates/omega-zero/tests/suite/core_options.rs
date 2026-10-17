@@ -64,13 +64,17 @@ fn every_option_omega_zero_sets_is_one_the_core_declares() {
         }
         for serial in every_serial_mode() {
             for bios in [false, true] {
-                for colour in [false, true] {
+                for (colour, ghosting) in
+                    [(false, false), (true, false), (false, true), (true, true)]
+                {
                     let mut core = LibretroCore::open(&path).expect("open core");
-                    omega_zero::core::apply_core_options(&mut core, which, serial, bios, colour);
+                    omega_zero::core::apply_core_options(
+                        &mut core, which, serial, bios, colour, ghosting,
+                    );
                     every_option_is_one_the_core_has(
                         &core,
                         &format!(
-                            "{} serial={serial} bios={bios} colour={colour}",
+                            "{} serial={serial} bios={bios} colour={colour} ghosting={ghosting}",
                             which.as_str()
                         ),
                     );
@@ -102,6 +106,31 @@ fn both_cores_declare_a_colour_correction_option() {
             "{} declares no {key}",
             which.as_str()
         );
+    }
+}
+
+#[test]
+fn both_cores_declare_an_lcd_ghosting_option_with_the_values_omega_zero_sets() {
+    let _g = common::core_lock();
+    for which in [Core::Mgba, Core::Gpsp] {
+        let path = dylib_for(which);
+        if !path.exists() {
+            eprintln!("no {} dylib on this host, skipping", which.as_str());
+            continue;
+        }
+        let core = LibretroCore::open(&path).expect("open core");
+        let declared = core.declared_options();
+        for on in [false, true] {
+            let (key, value) = omega_zero::core::ghosting_option(which, on).expect("a key");
+            let values = declared
+                .get(key)
+                .unwrap_or_else(|| panic!("{} declares no {key}", which.as_str()));
+            assert!(
+                values.iter().any(|v| v == value),
+                "{} declares {key} as {values:?}, not {value:?}",
+                which.as_str()
+            );
+        }
     }
 }
 

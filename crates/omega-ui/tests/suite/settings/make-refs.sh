@@ -7,7 +7,7 @@
 #   crates/omega-ui/tests/suite/settings/make-refs.sh
 #
 # Each ref is named settings-<canvas>-<colour>-<row>.png, <row> being the row flow.html's
-# #row= puts the cursor on (0 Fast Forward, 5 Date & Time). Needs python3 with Pillow.
+# #row= puts the cursor on (0 Fast Forward, 6 Date & Time). Needs python3 with Pillow.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 flow="$(cd "$here/../../../../../assets/ui" && pwd)/flow.html"
@@ -44,5 +44,5 @@ EOF
 for canvas in 640x480 720x480 720x720; do
   shoot "$canvas" night 0
 done
-shoot 640x480 amber 5
-shoot 720x480 amber 5
+shoot 640x480 amber 6
+shoot 720x480 amber 6

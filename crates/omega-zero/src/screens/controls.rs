@@ -78,6 +78,9 @@ impl ControlsView {
         if platform.colour_correction() {
             game.push(("SELECT+Y", "COLOUR"));
         }
+        if platform.lcd_ghosting() {
+            game.push(("SELECT+X", "GHOSTING"));
+        }
         if platform.owns_shoulders() {
             game.push(("L1 R1", "PICTURE SIZE"));
         }

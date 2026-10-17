@@ -16,6 +16,9 @@ pub enum Toast {
     BiosMismatch,
     ColourOn,
     ColourOff,
+    /// SELECT+X switched the LCD's ghosting on, or off.
+    GhostingOn,
+    GhostingOff,
     /// SELECT + MENU on a PlayStation game on one disc: there is no other to swap in.
     OneDisc,
     /// The DISC screen swapped disc `n`, counting from 1, into the drive.
@@ -37,7 +40,7 @@ const DISC_IN: [&str; 9] = [
 
 impl Toast {
     /// Every toast there is, a disc's once, as disc 1.
-    pub const ALL: [Toast; 11] = [
+    pub const ALL: [Toast; 13] = [
         Toast::StateSaved,
         Toast::StateLoaded,
         Toast::NeedsGpsp,
@@ -47,6 +50,8 @@ impl Toast {
         Toast::BiosMismatch,
         Toast::ColourOn,
         Toast::ColourOff,
+        Toast::GhostingOn,
+        Toast::GhostingOff,
         Toast::OneDisc,
         Toast::Disc(1),
     ];
@@ -63,8 +68,10 @@ impl Toast {
             Toast::BiosMismatch => 6,
             Toast::ColourOn => 7,
             Toast::ColourOff => 8,
-            Toast::OneDisc => 9,
-            Toast::Disc(_) => 10,
+            Toast::GhostingOn => 9,
+            Toast::GhostingOff => 10,
+            Toast::OneDisc => 11,
+            Toast::Disc(_) => 12,
         }
     }
 
@@ -78,6 +85,7 @@ impl Toast {
             | Toast::PeerEnded
             | Toast::BiosMismatch => "LINK",
             Toast::ColourOn | Toast::ColourOff => "COLOUR",
+            Toast::GhostingOn | Toast::GhostingOff => "GHOSTING",
             Toast::OneDisc | Toast::Disc(_) => "DISC",
         }
     }
@@ -94,6 +102,8 @@ impl Toast {
             Toast::BiosMismatch => "BIOS does not match",
             Toast::ColourOn => "Correction on",
             Toast::ColourOff => "Correction off",
+            Toast::GhostingOn => "Ghosting on",
+            Toast::GhostingOff => "Ghosting off",
             Toast::OneDisc => "Only one disc",
             Toast::Disc(n) => DISC_IN
                 .get(usize::from(n).wrapping_sub(1))

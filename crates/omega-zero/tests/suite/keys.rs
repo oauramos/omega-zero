@@ -91,6 +91,7 @@ fn each_system_says_what_its_buttons_do() {
             game_l2_r2: false,
             rewind: true,
             colour: false,
+            ghosting: false,
         }
     );
     assert_eq!(
@@ -99,6 +100,7 @@ fn each_system_says_what_its_buttons_do() {
             game_l2_r2: true,
             rewind: false,
             colour: false,
+            ghosting: false,
         }
     );
 }
@@ -177,5 +179,63 @@ fn a_gba_game_keeps_l2_and_r2_from_the_game() {
         held(&s) & (ButtonMask::L2 | ButtonMask::R2),
         0,
         "a GBA game was handed a shoulder it does not have"
+    );
+}
+
+#[test]
+fn select_and_x_toggle_a_handheld_games_ghosting_and_never_reach_it() {
+    let d = root_with(Platform::Gba, "Emerald");
+    let (mut s, mut now) = playing(&d, Platform::Gba, "Emerald");
+    let before = s.app().lcd_ghosting();
+    step(&mut s, &mut now, Some(RawEvent::Down(Btn::Select)));
+    step(&mut s, &mut now, Some(RawEvent::Down(Btn::X)));
+    assert_eq!(s.app().lcd_ghosting(), !before, "SELECT+X did not flip it");
+    assert_eq!(
+        held(&s) & (ButtonMask::X | ButtonMask::SELECT),
+        0,
+        "the chord reached the game"
+    );
+    assert_eq!(
+        s.app().toast(),
+        Some(match before {
+            true => omega_ui::Toast::GhostingOff,
+            false => omega_ui::Toast::GhostingOn,
+        })
+    );
+    step(&mut s, &mut now, Some(RawEvent::Up(Btn::X)));
+    step(&mut s, &mut now, Some(RawEvent::Up(Btn::Select)));
+    for _ in 0..10 {
+        step(&mut s, &mut now, None);
+    }
+    assert_eq!(held(&s), 0, "the chord left a button held");
+    assert_eq!(
+        omega_store::read_app_state(d.path()).lcd_ghosting,
+        !before,
+        "the shortcut never reached the card"
+    );
+    step(&mut s, &mut now, Some(RawEvent::Down(Btn::X)));
+    assert_ne!(
+        held(&s) & ButtonMask::X,
+        0,
+        "X alone never reached the game"
+    );
+}
+
+#[test]
+fn select_and_x_are_a_snes_games_own() {
+    let d = root_with(Platform::Snes, "Mario");
+    let (mut s, mut now) = playing(&d, Platform::Snes, "Mario");
+    let before = s.app().lcd_ghosting();
+    step(&mut s, &mut now, Some(RawEvent::Down(Btn::Select)));
+    step(&mut s, &mut now, Some(RawEvent::Down(Btn::X)));
+    assert_eq!(
+        s.app().lcd_ghosting(),
+        before,
+        "a SNES game's SELECT+X was taken"
+    );
+    assert_eq!(
+        held(&s) & (ButtonMask::X | ButtonMask::SELECT),
+        ButtonMask::X | ButtonMask::SELECT,
+        "SELECT+X never reached the game"
     );
 }

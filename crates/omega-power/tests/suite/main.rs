@@ -6,6 +6,7 @@ mod baseos;
 mod device;
 mod first_frame;
 mod power;
+mod refresh;
 
 /// A file in this folder that the list above leaves out is never compiled, let alone run.
 #[test]

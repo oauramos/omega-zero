@@ -57,6 +57,8 @@ pub enum SettingsRow {
     FastForward,
     FastForwardSound,
     ColourCorrection,
+    /// The handhelds' cores blend each frame with the last, as the LCD ghosted.
+    LcdGhosting,
     Rumble,
     Labels,
     DateTime,
@@ -69,10 +71,11 @@ pub enum SettingsRow {
 }
 
 impl SettingsRow {
-    pub const ALL: [SettingsRow; 10] = [
+    pub const ALL: [SettingsRow; 11] = [
         SettingsRow::FastForward,
         SettingsRow::FastForwardSound,
         SettingsRow::ColourCorrection,
+        SettingsRow::LcdGhosting,
         SettingsRow::Rumble,
         SettingsRow::Labels,
         SettingsRow::DateTime,
@@ -91,6 +94,7 @@ impl SettingsRow {
             SettingsRow::FastForward => "Fast Forward",
             SettingsRow::FastForwardSound => "Fast Forward Sound",
             SettingsRow::ColourCorrection => "Colour Correction",
+            SettingsRow::LcdGhosting => "LCD Ghosting",
             SettingsRow::Rumble => "Rumble",
             SettingsRow::Labels => "Labels",
             SettingsRow::DateTime => "Date & Time",
@@ -106,6 +110,7 @@ impl SettingsRow {
             SettingsRow::FastForward
             | SettingsRow::FastForwardSound
             | SettingsRow::ColourCorrection
+            | SettingsRow::LcdGhosting
             | SettingsRow::Rumble
             | SettingsRow::Labels => SettingsGroup::Configs,
             SettingsRow::DateTime
@@ -138,6 +143,7 @@ impl SettingsRow {
             SettingsRow::FastForward
                 | SettingsRow::FastForwardSound
                 | SettingsRow::ColourCorrection
+                | SettingsRow::LcdGhosting
                 | SettingsRow::Rumble
         )
     }

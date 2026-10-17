@@ -30,6 +30,7 @@ impl App {
             SettingsRow::FastForward => QuickValue::speed(self.state.ff_speed),
             SettingsRow::FastForwardSound => Some(QuickValue::flag(self.state.ff_sound)),
             SettingsRow::ColourCorrection => Some(QuickValue::flag(self.state.colour_correction)),
+            SettingsRow::LcdGhosting => Some(QuickValue::flag(self.state.lcd_ghosting)),
             SettingsRow::Rumble => Some(QuickValue::flag(self.state.rumble)),
             SettingsRow::Labels
             | SettingsRow::DateTime
@@ -131,6 +132,7 @@ impl App {
             SettingsRow::FastForward
             | SettingsRow::FastForwardSound
             | SettingsRow::ColourCorrection
+            | SettingsRow::LcdGhosting
             | SettingsRow::Rumble => return,
         };
         self.go(to, Dir::Deeper);
@@ -150,6 +152,10 @@ impl App {
             SettingsRow::ColourCorrection => {
                 s.colour_correction = !s.colour_correction;
                 self.colour_pending = Some(s.colour_correction);
+            }
+            SettingsRow::LcdGhosting => {
+                s.lcd_ghosting = !s.lcd_ghosting;
+                self.ghosting_pending = Some(s.lcd_ghosting);
             }
             SettingsRow::Rumble => s.rumble = !s.rumble,
             SettingsRow::Labels

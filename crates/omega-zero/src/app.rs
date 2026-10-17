@@ -325,6 +325,8 @@ pub struct App {
     pub(crate) snapshot: Option<Box<dyn Snapshot>>,
     pub(crate) core: Core,
     pub(crate) colour_pending: Option<bool>,
+    /// The LCD's ghosting as last changed, for the running core, until the session takes it.
+    pub(crate) ghosting_pending: Option<bool>,
     pub(crate) link_player: Option<u8>,
     pub(crate) platform: Platform,
     pub(crate) named_core: bool,
@@ -486,6 +488,7 @@ impl App {
             snapshot: None,
             core: Core::default(),
             colour_pending: None,
+            ghosting_pending: None,
             link_player: None,
             platform: Platform::default(),
             named_core: false,
@@ -857,6 +860,7 @@ impl App {
             game_l2_r2: self.platform.game_owns_l2_r2(),
             rewind: self.platform.rewinds(),
             colour: self.platform.colour_correction(),
+            ghosting: self.platform.lcd_ghosting(),
         }
     }
 
@@ -993,6 +997,9 @@ impl App {
     }
 
     pub fn set_power(&mut self, mut power: Power) {
+        if power.supports_high_refresh() && !power.set_high_refresh(self.state.high_refresh) {
+            self.state.high_refresh = false;
+        }
         power.set_backlight(self.state.brightness);
         self.headphones = power.headphones();
         self.hud.set_headphones(self.headphones);
@@ -1027,6 +1034,15 @@ impl App {
 
     pub fn colour_correction(&self) -> bool {
         self.state.colour_correction
+    }
+
+    pub fn lcd_ghosting(&self) -> bool {
+        self.state.lcd_ghosting
+    }
+
+    /// Whether the panel runs at 120 Hz now.
+    pub fn high_refresh(&self) -> bool {
+        self.power.as_ref().is_some_and(Power::high_refresh_enabled)
     }
 
     pub fn powering_off(&self) -> bool {
@@ -1087,6 +1103,10 @@ impl App {
 
     pub fn take_colour_correction(&mut self) -> Option<bool> {
         self.colour_pending.take()
+    }
+
+    pub fn take_lcd_ghosting(&mut self) -> Option<bool> {
+        self.ghosting_pending.take()
     }
 
     pub fn core(&self) -> Core {
@@ -1458,6 +1478,15 @@ impl App {
             let said = match self.state.colour_correction {
                 true => Toast::ColourOn,
                 false => Toast::ColourOff,
+            };
+            self.hud.toast(said, self.now());
+            return true;
+        }
+        if action == Action::LcdGhostingToggle {
+            self.change_setting(SettingsRow::LcdGhosting, true);
+            let said = match self.state.lcd_ghosting {
+                true => Toast::GhostingOn,
+                false => Toast::GhostingOff,
             };
             self.hud.toast(said, self.now());
             return true;
@@ -2460,8 +2489,13 @@ impl App {
             Some(cart) => Phase::Playing { cart },
             None => Phase::Shelf,
         };
-        if let Some(power) = &mut self.power {
+        let refresh_lost = self.power.as_mut().is_some_and(|power| {
             power.on_open();
+            power.supports_high_refresh() && !power.high_refresh_enabled()
+        });
+        if self.state.high_refresh && refresh_lost {
+            self.state.high_refresh = false;
+            self.persist();
         }
     }
 

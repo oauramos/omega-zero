@@ -42,6 +42,7 @@ pub enum Action {
     GameMenu,
     MuteToggle,
     ColourCorrectionToggle,
+    LcdGhostingToggle,
     PowerPress,
     PowerTap,
     PowerHold,
@@ -52,7 +53,7 @@ pub enum Action {
 
 /// What the buttons the systems disagree about do for the game being played. The handhelds'
 /// layout is the default: L2 rewinds, R2 fast-forwards (pressed twice quickly, it keeps going),
-/// and SELECT+Y toggles the colour correction. A game with L2 and R2 of its own, as the
+/// SELECT+Y toggles the colour correction and SELECT+X the LCD's ghosting. A game with L2 and R2 of its own, as the
 /// PlayStation's have, is handed them, and fast forward moves to SELECT+R2: the same hold, and
 /// the same double press, with SELECT held.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -63,14 +64,18 @@ pub struct Keys {
     pub rewind: bool,
     /// SELECT+Y toggles the colour correction. Off, a Y under SELECT is the game's.
     pub colour: bool,
+    /// SELECT+X toggles the LCD's ghosting. Off, an X under SELECT is the game's.
+    pub ghosting: bool,
 }
 
 impl Keys {
-    /// The handhelds': L2 rewinds, R2 fast-forwards and SELECT+Y is the colour correction.
+    /// The handhelds': L2 rewinds, R2 fast-forwards, SELECT+Y is the colour correction and
+    /// SELECT+X the LCD's ghosting.
     pub const HANDHELD: Keys = Keys {
         game_l2_r2: false,
         rewind: true,
         colour: true,
+        ghosting: true,
     };
 }
 
@@ -281,6 +286,7 @@ impl Gestures {
             Btn::L1 => (16, Action::LoadState),
             Btn::R1 => (32, Action::SaveState),
             Btn::Y if self.keys.colour => (64, Action::ColourCorrectionToggle),
+            Btn::X if self.keys.ghosting => (X_CHORD, Action::LcdGhostingToggle),
             Btn::L2 if self.keys.game_l2_r2 && self.keys.rewind => (L2_CHORD, Action::RewindStart),
             Btn::R2 if self.keys.game_l2_r2 => (R2_CHORD, Action::FfStart),
             _ => return None,
@@ -491,3 +497,5 @@ impl Gestures {
 /// The chord bits of SELECT+L2 and SELECT+R2, held for as long as the shoulder is.
 const L2_CHORD: u16 = 128;
 const R2_CHORD: u16 = 256;
+/// The chord bit of SELECT+X.
+const X_CHORD: u16 = 512;

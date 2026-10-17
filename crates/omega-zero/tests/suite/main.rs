@@ -37,6 +37,7 @@ mod frame_size;
 mod frames;
 mod gpsp;
 mod headphones;
+mod high_refresh;
 mod input;
 mod keyboard;
 mod keys;

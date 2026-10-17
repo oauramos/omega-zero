@@ -38,27 +38,31 @@ pub struct Opened {
 }
 
 /// What a game is opened with besides its core: a handheld's link cable mode, its screen's
-/// colour correction and the player it is on a cable. A SNES or PlayStation game has none of it.
+/// colour correction and ghosting, and the player it is on a cable. A SNES or PlayStation game
+/// has none of it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Setup<'a> {
     Handheld {
         serial: &'a str,
         colour: bool,
+        ghosting: bool,
         link: Option<u8>,
     },
     Console,
 }
 
 impl<'a> Setup<'a> {
-    /// The serial mode, colour correction and cable player the core's options are set from.
-    fn handheld(self) -> (&'a str, bool, Option<u8>) {
+    /// The serial mode, colour correction, ghosting and cable player the core's options are
+    /// set from.
+    fn handheld(self) -> (&'a str, bool, bool, Option<u8>) {
         match self {
             Setup::Handheld {
                 serial,
                 colour,
+                ghosting,
                 link,
-            } => (serial, colour, link),
-            Setup::Console => ("auto", false, None),
+            } => (serial, colour, ghosting, link),
+            Setup::Console => ("auto", false, false, None),
         }
     }
 }
@@ -89,7 +93,7 @@ fn stand_in(core: Core) -> MockCore {
     }
 }
 
-/// `open` for a handheld game.
+/// `open` for a handheld game, with the LCD's ghosting off: each frame as the core drew it.
 pub fn open_core(root: &Path, core: Core, serial: &str, colour: bool, link: Option<u8>) -> Opened {
     open(
         root,
@@ -97,6 +101,7 @@ pub fn open_core(root: &Path, core: Core, serial: &str, colour: bool, link: Opti
         Setup::Handheld {
             serial,
             colour,
+            ghosting: false,
             link,
         },
     )
@@ -112,6 +117,7 @@ pub fn open_core_for(
     let setup = Setup::Handheld {
         serial,
         colour,
+        ghosting: false,
         link: None,
     };
     open_named(root, core, setup, paths).unwrap_or_else(|| {
@@ -128,17 +134,24 @@ fn open_named(
 ) -> Option<Box<dyn RetroCore>> {
     let bios = root::bios_dir(root);
     let saves = root::saves_dir(root);
-    let (serial, colour, link) = setup.handheld();
+    let (serial, colour, ghosting, link) = setup.handheld();
     for path in paths {
         if !path.exists() {
             continue;
         }
         // the options are there before the core starts, for one that reads them as it does
-        let options = core_options(core, serial, root::has_real_bios(root), colour);
+        let options = core_options(core, serial, root::has_real_bios(root), colour, ghosting);
         let early: Vec<(&str, &str)> = options.iter().map(|(k, v)| (*k, v.as_str())).collect();
         match LibretroCore::open_with_options(path, &bios, &saves, &early) {
             Ok(mut opened) => {
-                apply_core_options(&mut opened, core, serial, root::has_real_bios(root), colour);
+                apply_core_options(
+                    &mut opened,
+                    core,
+                    serial,
+                    root::has_real_bios(root),
+                    colour,
+                    ghosting,
+                );
                 if let Some(player) = link {
                     apply_link_options(&mut opened, core, player);
                 }
@@ -174,6 +187,16 @@ pub fn colour_option(which: Core, on: bool) -> Option<(&'static str, &'static st
     }
 }
 
+/// The option that blends each frame with the last, as the handhelds' LCDs ghosted, spelt the
+/// way each of their cores declares it: mGBA mixes the two frames, gpSP its frame mixing.
+pub fn ghosting_option(which: Core, on: bool) -> Option<(&'static str, &'static str)> {
+    match which {
+        Core::Mgba => Some(("mgba_interframe_blending", if on { "mix" } else { "OFF" })),
+        Core::Gpsp => Some(("gpsp_frame_mixing", if on { "enabled" } else { "disabled" })),
+        Core::Snes9x | Core::Supafaust | Core::PcsxRearmed => None,
+    }
+}
+
 pub fn apply_link_options(core: &mut LibretroCore, which: Core, player: u8) {
     if which != Core::Mgba {
         return;
@@ -189,14 +212,15 @@ pub fn apply_core_options(
     serial: &str,
     bios: bool,
     colour: bool,
+    ghosting: bool,
 ) {
-    for (key, value) in core_options(which, serial, bios, colour) {
+    for (key, value) in core_options(which, serial, bios, colour, ghosting) {
         core.set_option(key, &value);
     }
 }
 
 /// Every option omega-zero sets on `which`, in the order it sets them, each spelt as that core
-/// declares it. `serial`, the BIOS and `colour` only reach the handhelds' cores.
+/// declares it. `serial`, the BIOS, `colour` and `ghosting` only reach the handhelds' cores.
 ///
 /// Frame skipping is asked for wherever the core has it, so fast-forward can skip frames by
 /// reporting an underrun: mGBA and gpSP name it `_frameskip`, pcsx_rearmed
@@ -213,6 +237,7 @@ pub fn core_options(
     serial: &str,
     bios: bool,
     colour: bool,
+    ghosting: bool,
 ) -> Vec<(&'static str, String)> {
     let mut set: Vec<(&'static str, String)> = Vec::new();
     let mut put = |key: &'static str, value: &str| set.push((key, value.to_string()));
@@ -245,6 +270,9 @@ pub fn core_options(
     if let Some((key, value)) = colour_option(which, colour) {
         put(key, value);
     }
+    if let Some((key, value)) = ghosting_option(which, ghosting) {
+        put(key, value);
+    }
     set
 }
 
@@ -275,8 +303,56 @@ mod tests {
         );
     }
 
+    #[test]
+    fn each_handheld_core_spells_lcd_ghosting_its_own_way() {
+        assert_eq!(
+            ghosting_option(Core::Mgba, true),
+            Some(("mgba_interframe_blending", "mix"))
+        );
+        assert_eq!(
+            ghosting_option(Core::Mgba, false),
+            Some(("mgba_interframe_blending", "OFF"))
+        );
+        assert_eq!(
+            ghosting_option(Core::Gpsp, true),
+            Some(("gpsp_frame_mixing", "enabled"))
+        );
+        assert_eq!(
+            ghosting_option(Core::Gpsp, false),
+            Some(("gpsp_frame_mixing", "disabled"))
+        );
+        for which in [Core::Snes9x, Core::Supafaust, Core::PcsxRearmed] {
+            assert_eq!(ghosting_option(which, true), None, "{which:?}");
+        }
+    }
+
+    #[test]
+    fn the_handheld_cores_are_set_to_blend_frames_only_while_ghosting_is_on() {
+        for (which, key, on, off) in [
+            (Core::Mgba, "mgba_interframe_blending", "mix", "OFF"),
+            (Core::Gpsp, "gpsp_frame_mixing", "enabled", "disabled"),
+        ] {
+            let value = |ghosting| {
+                core_options(which, "auto", false, false, ghosting)
+                    .into_iter()
+                    .find(|(k, _)| *k == key)
+                    .map(|(_, v)| v)
+            };
+            assert_eq!(value(true).as_deref(), Some(on), "{which:?}");
+            assert_eq!(value(false).as_deref(), Some(off), "{which:?}");
+        }
+        for which in [Core::Snes9x, Core::Supafaust, Core::PcsxRearmed] {
+            assert!(
+                !core_options(which, "auto", false, false, true)
+                    .iter()
+                    .any(|(k, _)| k.contains("blending") || k.contains("frame_mixing")),
+                "{which:?} was told to blend frames"
+            );
+        }
+    }
+
     fn keys(which: Core) -> Vec<&'static str> {
-        core_options(which, "auto", true, true)
+        core_options(which, "auto", true, true, true)
             .into_iter()
             .map(|(k, _)| k)
             .collect()
@@ -295,7 +371,7 @@ mod tests {
     #[test]
     fn frame_skipping_is_asked_for_by_each_core_s_own_name_for_it() {
         let skip = |which| {
-            core_options(which, "auto", false, false)
+            core_options(which, "auto", false, false, false)
                 .into_iter()
                 .find(|(k, _)| k.contains("frameskip"))
         };
@@ -318,12 +394,12 @@ mod tests {
     fn the_consoles_take_no_handheld_options() {
         for which in [Core::Snes9x, Core::Supafaust, Core::PcsxRearmed] {
             assert_eq!(
-                core_options(which, "rfu", true, true),
-                core_options(which, "auto", false, false),
-                "{which:?} took a serial mode, a BIOS boot or colour correction"
+                core_options(which, "rfu", true, true, true),
+                core_options(which, "auto", false, false, false),
+                "{which:?} took a serial mode, a BIOS boot, colour correction or ghosting"
             );
         }
-        assert!(core_options(Core::PcsxRearmed, "auto", false, false)
+        assert!(core_options(Core::PcsxRearmed, "auto", false, false, false)
             .contains(&("pcsx_rearmed_memcard1", "libretro".into())));
     }
 

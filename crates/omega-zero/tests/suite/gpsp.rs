@@ -45,7 +45,7 @@ fn gpsp_is_told_its_serial_mode_before_load() {
     }
     let _g = common::core_lock();
     let mut core = omega_retro::LibretroCore::open(&path).expect("open gpsp");
-    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", false, false);
+    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", false, false, false);
     assert_eq!(
         core.option("gpsp_serial"),
         Some("auto".to_string()),
@@ -63,7 +63,7 @@ fn gpsp_is_told_the_serial_mode_it_is_handed() {
     let _g = common::core_lock();
     let mut core = omega_retro::LibretroCore::open(&path).expect("open gpsp");
     for serial in ["rfu", "mul_poke", "mul_aw1", "mul_aw2"] {
-        omega_zero::core::apply_core_options(&mut core, Core::Gpsp, serial, false, false);
+        omega_zero::core::apply_core_options(&mut core, Core::Gpsp, serial, false, false, false);
         assert_eq!(
             core.option("gpsp_serial"),
             Some(serial.to_string()),
@@ -81,7 +81,7 @@ fn gpsp_boots_through_the_bios_when_the_card_carries_one() {
     }
     let _g = common::core_lock();
     let mut core = omega_retro::LibretroCore::open(&path).expect("open gpsp");
-    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", true, false);
+    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", true, false, false);
     assert_eq!(
         core.option("gpsp_boot_mode"),
         Some("bios".to_string()),
@@ -109,7 +109,7 @@ fn gpsp_is_left_on_its_own_boot_default_when_the_card_has_no_bios() {
     }
     let _g = common::core_lock();
     let mut core = omega_retro::LibretroCore::open(&path).expect("open gpsp");
-    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", false, false);
+    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", false, false, false);
     assert_eq!(
         core.option("gpsp_boot_mode"),
         None,
@@ -127,7 +127,7 @@ fn mgba_is_given_its_own_frameskip_and_none_of_gpsps() {
     }
     let _g = common::core_lock();
     let mut core = omega_retro::LibretroCore::open(&path).expect("open mgba");
-    omega_zero::core::apply_core_options(&mut core, Core::Mgba, "rfu", true, false);
+    omega_zero::core::apply_core_options(&mut core, Core::Mgba, "rfu", true, false, false);
     assert_eq!(
         core.option("gpsp_serial"),
         None,
@@ -164,7 +164,7 @@ fn both_cores_are_told_about_colour_correction_in_their_own_words() {
         let _g = common::core_lock();
         let mut core = omega_retro::LibretroCore::open(&path).expect("open the core");
         for (colour, want) in [(true, on), (false, off)] {
-            omega_zero::core::apply_core_options(&mut core, which, "auto", false, colour);
+            omega_zero::core::apply_core_options(&mut core, which, "auto", false, colour, false);
             assert_eq!(
                 core.option(key).as_deref(),
                 Some(want),
@@ -195,7 +195,7 @@ fn gpsp_is_put_on_auto_frameskip() {
     }
     let _g = common::core_lock();
     let mut core = omega_retro::LibretroCore::open(&path).expect("open gpsp");
-    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", false, false);
+    omega_zero::core::apply_core_options(&mut core, Core::Gpsp, "auto", false, false, false);
     assert_eq!(
         core.option("gpsp_frameskip").as_deref(),
         Some("auto"),

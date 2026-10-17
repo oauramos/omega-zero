@@ -73,6 +73,12 @@ impl Platform {
         matches!(self, Platform::Gba | Platform::Gb | Platform::Gbc)
     }
 
+    /// Whether the handheld LCD's ghosting applies: the cores that run the handhelds' games,
+    /// mGBA and gpSP, can blend each frame with the last.
+    pub fn lcd_ghosting(self) -> bool {
+        matches!(self, Platform::Gba | Platform::Gb | Platform::Gbc)
+    }
+
     /// Whether held L2 rewinds: not on the PlayStation, whose games use L2 and whose states
     /// are too big for the rewind buffer.
     pub fn rewinds(self) -> bool {

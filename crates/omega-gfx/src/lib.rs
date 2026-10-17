@@ -1,4 +1,5 @@
 mod canvas;
+mod displaycal;
 mod draw;
 mod fbdev;
 mod fbo;
