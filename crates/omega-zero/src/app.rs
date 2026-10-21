@@ -329,6 +329,7 @@ pub struct App {
     pub(crate) platform: Platform,
     pub(crate) named_core: bool,
     pub(crate) video_mode: VideoMode,
+    pub(crate) look: omega_gfx::Look,
     link: Option<LinkSession>,
     pub(crate) sfx: Option<Sfx>,
     pub(crate) polaroids: Option<Polaroids>,
@@ -490,6 +491,7 @@ impl App {
             platform: Platform::default(),
             named_core: false,
             video_mode: VideoMode::default(),
+            look: omega_gfx::Look::Off,
             link: None,
             sfx: None,
             polaroids: None,
@@ -832,6 +834,27 @@ impl App {
         self.video_mode = mode;
     }
 
+    /// The screen look the game in the handheld is drawn through.
+    pub fn look(&self) -> omega_gfx::Look {
+        self.look
+    }
+
+    pub fn set_look(&mut self, look: omega_gfx::Look) {
+        self.look = look;
+    }
+
+    /// SELECT+X: the next look for the game's system, kept for every game of it.
+    fn next_look(&mut self) {
+        let look = crate::shader::next_look(self.platform, self.look);
+        self.look = look;
+        if let Some(root) = self.root.clone() {
+            if let Err(e) = crate::shader::write_shader(&root, self.platform, look) {
+                eprintln!("omega-zero: video: could not write shader.ini: {e}");
+            }
+        }
+        self.hud.toast(Toast::Shader(look), self.now());
+    }
+
     pub fn source_rect(&self) -> [f32; 4] {
         video_mode::source_rect(self.platform, self.video_mode)
     }
@@ -857,6 +880,7 @@ impl App {
             game_l2_r2: self.platform.game_owns_l2_r2(),
             rewind: self.platform.rewinds(),
             colour: self.platform.colour_correction(),
+            picture: self.platform.picture_toggle(),
         }
     }
 
@@ -880,10 +904,10 @@ impl App {
             return;
         }
         self.video_mode = mode;
-        let (Some(root), Phase::Playing { cart }) = (self.root.clone(), &self.phase) else {
+        let (Some(root), Phase::Playing { .. }) = (self.root.clone(), &self.phase) else {
             return;
         };
-        if let Err(e) = video_mode::write_video_mode(&root, cart, mode) {
+        if let Err(e) = video_mode::write_video_mode(&root, self.platform, mode) {
             eprintln!("omega-zero: video: could not write video_mode.ini: {e}");
         }
     }
@@ -1459,6 +1483,27 @@ impl App {
                 true => Toast::ColourOn,
                 false => Toast::ColourOff,
             };
+            self.hud.toast(said, self.now());
+            return true;
+        }
+        if action == Action::ShaderNext {
+            if !matches!(self.phase, Phase::Playing { .. }) {
+                return false;
+            }
+            self.next_look();
+            return true;
+        }
+        if action == Action::PictureToggle {
+            if !matches!(self.phase, Phase::Playing { .. }) {
+                return false;
+            }
+            let mode = self.video_mode.next();
+            let said = match mode {
+                VideoMode::Actual => Toast::PictureActual,
+                VideoMode::Aspect => Toast::PictureAspect,
+                VideoMode::Stretch => Toast::PictureStretch,
+            };
+            self.set_picture(mode);
             self.hud.toast(said, self.now());
             return true;
         }

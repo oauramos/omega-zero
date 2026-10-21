@@ -75,6 +75,12 @@ pub fn scan(root: &Path) -> Result<Vec<Cart>, StoreError> {
                     String::new(),
                 ),
                 Platform::Ps1 => (String::new(), crate::ps1::serial(&rom).unwrap_or_default()),
+                // a HuCard, or an iNES image, carries no header to read a title or code from
+                Platform::Pce | Platform::Nes => (String::new(), String::new()),
+                Platform::Md => (
+                    crate::md::header(&rom).map(|h| h.title).unwrap_or_default(),
+                    String::new(),
+                ),
             };
             carts.push(Cart {
                 platform,

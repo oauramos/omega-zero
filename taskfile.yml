@@ -1,21 +1,34 @@
 version: '3'
 
+# A local .env, kept out of git, can hold OMEGA_SS_DEVID and OMEGA_SS_DEVPASSWORD, ScreenScraper's
+# key, so every local build carries it; .env.example shows the shape. The environment wins.
+dotenv: ['.env']
+
 vars:
   CORE: vendor/mgba_libretro.dylib
   GPSP_HOST: vendor/gpsp_libretro.dylib
   SNES9X_HOST: vendor/snes9x_libretro.dylib
   SUPAFAUST_HOST: vendor/mednafen_supafaust_libretro.dylib
   PCSX_HOST: vendor/pcsx_rearmed_libretro.dylib
+  PCE_FAST_HOST: vendor/mednafen_pce_fast_libretro.dylib
+  FCEUMM_HOST: vendor/fceumm_libretro.dylib
+  GPGX_HOST: vendor/genesis_plus_gx_libretro.dylib
   MGBA_COMMIT: e31759b24e7a4e3899285ff720d7b573ac328ae7
   GPSP_COMMIT: 7b2dd37394e2822110cacef321e9bb291a305b77
   SNES9X_COMMIT: fae2fea08f74180759ef540ee94259213f503480
   SUPAFAUST_COMMIT: 642d1d1b6684aa7e306a02a89885f3f5456a5157
   PCSX_COMMIT: c8816799b50388e61cfe237fe2cdbb7d8175f20a
+  PCE_FAST_COMMIT: 3f946f277aef3aa99a95551618bbcd1dd2bda0d9
+  FCEUMM_COMMIT: ac0d00a7fc01166f84c7bac01d1084ebfd2b865e
+  GPGX_COMMIT: aa74d79634cd230f65cce4180e92688e53883d2f
   # The libretro names of the cores the device bundle ships, <name>_libretro.so in System/
-  DEVICE_CORES: mgba gpsp snes9x mednafen_supafaust pcsx_rearmed
+  DEVICE_CORES: mgba gpsp snes9x mednafen_supafaust pcsx_rearmed mednafen_pce_fast fceumm
+    genesis_plus_gx
   # The cores built by cores/<name>/build.sh whose source archive ships in System/licenses/
   # beside them, as <name>:<libretro name>. gpSP's ships too, the way it always has
-  SOURCE_CORES: snes9x:snes9x supafaust:mednafen_supafaust pcsx_rearmed:pcsx_rearmed
+  SOURCE_CORES: >-
+    snes9x:snes9x supafaust:mednafen_supafaust pcsx_rearmed:pcsx_rearmed
+    pce_fast:mednafen_pce_fast fceumm:fceumm genesis_plus_gx:genesis_plus_gx
 
 tasks:
   default:
@@ -120,14 +133,17 @@ tasks:
 
   core:
     desc: >-
-      Build mGBA and Supafaust and fetch gpSP, Snes9x and pcsx_rearmed for this host. A missing
-      core silently runs the mock (a test pattern and a sine tone) instead
+      Build mGBA and Supafaust and fetch gpSP, Snes9x, pcsx_rearmed, Beetle PCE Fast, FCEUmm and
+      Genesis Plus GX for this host. A missing core silently runs the mock (a test pattern and a sine tone) instead
     cmds:
       - task: core:mgba:host
       - task: core:gpsp:host
       - task: core:snes9x:host
       - task: core:supafaust:host
       - task: core:pcsx:host
+      - task: core:pce_fast:host
+      - task: core:fceumm:host
+      - task: core:genesis_plus_gx:host
 
   core:mgba:host:
     desc: Build mgba_libretro for this host from the pinned libretro/mgba commit and cores/mgba's patches
@@ -156,6 +172,24 @@ tasks:
     cmds:
       - task: core:buildbot
         vars: {LIB: pcsx_rearmed}
+
+  core:pce_fast:host:
+    desc: Fetch the host Beetle PCE Fast core from the libretro buildbot
+    cmds:
+      - task: core:buildbot
+        vars: {LIB: mednafen_pce_fast}
+
+  core:fceumm:host:
+    desc: Fetch the host FCEUmm core from the libretro buildbot
+    cmds:
+      - task: core:buildbot
+        vars: {LIB: fceumm}
+
+  core:genesis_plus_gx:host:
+    desc: Fetch the host Genesis Plus GX core from the libretro buildbot
+    cmds:
+      - task: core:buildbot
+        vars: {LIB: genesis_plus_gx}
 
   core:supafaust:host:
     desc: >-
@@ -199,12 +233,14 @@ tasks:
 
   core:src:
     desc: >-
-      Fetch libretro/NAME's source archive at COMMIT into vendor/NAME-src.tar.gz, checking it
-      holds FILE, and note the commit beside it in vendor/NAME-src.sha
+      Fetch libretro/REPO's source archive at COMMIT into vendor/NAME-src.tar.gz, checking it
+      holds FILE, and note the commit beside it in vendor/NAME-src.sha. REPO defaults to NAME
     internal: true
     run: when_changed
     requires:
       vars: [NAME, COMMIT, FILE]
+    vars:
+      REPO: '{{.REPO | default .NAME}}'
     status:
       - test -f vendor/{{.NAME}}-src.tar.gz
       - test "$(cat vendor/{{.NAME}}-src.sha 2>/dev/null)" = "{{.COMMIT}}"
@@ -214,8 +250,8 @@ tasks:
         mkdir -p vendor
         rm -f vendor/{{.NAME}}-src.tar.gz vendor/{{.NAME}}-src.sha
         curl -fsSL -o vendor/{{.NAME}}-src.tar.gz \
-          "https://github.com/libretro/{{.NAME}}/archive/{{.COMMIT}}.tar.gz"
-        tar -tzf vendor/{{.NAME}}-src.tar.gz | grep "^{{.NAME}}-{{.COMMIT}}/{{.FILE}}$" > /dev/null
+          "https://github.com/libretro/{{.REPO}}/archive/{{.COMMIT}}.tar.gz"
+        tar -tzf vendor/{{.NAME}}-src.tar.gz | grep "^{{.REPO}}-{{.COMMIT}}/{{.FILE}}$" > /dev/null
         echo "{{.COMMIT}}" > vendor/{{.NAME}}-src.sha
 
   core:update:
@@ -225,7 +261,8 @@ tasks:
     cmds:
       - >-
         rm -f {{.CORE}} {{.CORE}}.meta {{.GPSP_HOST}} {{.SNES9X_HOST}} {{.SUPAFAUST_HOST}}
-        {{.SUPAFAUST_HOST}}.meta {{.PCSX_HOST}}
+        {{.SUPAFAUST_HOST}}.meta {{.PCSX_HOST}} {{.PCE_FAST_HOST}} {{.FCEUMM_HOST}}
+        {{.GPGX_HOST}}
       - task: core
 
   icons:
@@ -318,7 +355,7 @@ tasks:
       - cp target/release/omega-zero {{.OUT}}/System/omega-zero
       - >-
         cp {{.CORE}} {{.GPSP_HOST}} {{.SNES9X_HOST}} {{.SUPAFAUST_HOST}} {{.PCSX_HOST}}
-        {{.OUT}}/System/
+        {{.PCE_FAST_HOST}} {{.FCEUMM_HOST}} {{.GPGX_HOST}} {{.OUT}}/System/
       - 'echo "dist ready at {{.OUT}}, copy its contents to SD2"'
 
   core:device:
@@ -460,9 +497,184 @@ tasks:
         vendor/pcsx_rearmed-src.tar.gz vendor/pcsx_rearmed-src.sha
       - task: core:pcsx
 
+  core:pce_fast:
+    desc: >-
+      Build the aarch64 linux Beetle PCE Fast core from its pinned source archive, which ships
+      beside it as its GPL-2.0 section 3(a) corresponding source
+    status:
+      - test -f vendor/mednafen_pce_fast_libretro.so
+      - test "$(cat vendor/pce_fast-src.sha 2>/dev/null)" = "{{.PCE_FAST_COMMIT}}"
+      - test "$(cat vendor/mednafen_pce_fast_libretro.so.meta 2>/dev/null)" = "$(sh cores/pce_fast/build.sh stamp {{.PCE_FAST_COMMIT}})"
+    cmds:
+      - task: core:src
+        vars:
+          NAME: pce_fast
+          REPO: beetle-pce-fast-libretro
+          COMMIT: '{{.PCE_FAST_COMMIT}}'
+          FILE: Makefile
+      - task: device:sh
+        vars:
+          CMD: >-
+            sh cores/pce_fast/build.sh build {{.PCE_FAST_COMMIT}} vendor/pce_fast-src.tar.gz
+            target-device/pce_fast vendor/mednafen_pce_fast_libretro.so
+      - file vendor/mednafen_pce_fast_libretro.so | grep -q aarch64
+      - >-
+        echo "built vendor/mednafen_pce_fast_libretro.so from vendor/pce_fast-src.tar.gz @
+        {{.PCE_FAST_COMMIT}}"
+
+  core:pce_fast:cross:
+    desc: >-
+      core:pce_fast on an x86_64 host without arm64 emulation: cross-compiled in an amd64
+      container with the aarch64 toolchain
+    cmds:
+      - task: core:src
+        vars:
+          NAME: pce_fast
+          REPO: beetle-pce-fast-libretro
+          COMMIT: '{{.PCE_FAST_COMMIT}}'
+          FILE: Makefile
+      - |
+        set -eu
+        docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src rust:1-bullseye sh -c '
+          set -e
+          apt-get update -qq
+          apt-get install -y -qq g++-aarch64-linux-gnu >/dev/null
+          CROSS=aarch64-linux-gnu- sh cores/pce_fast/build.sh build {{.PCE_FAST_COMMIT}} \
+            vendor/pce_fast-src.tar.gz target-device/pce_fast vendor/mednafen_pce_fast_libretro.so
+          chown -R '"$(id -u):$(id -g)"' vendor target-device'
+      - file vendor/mednafen_pce_fast_libretro.so | grep -q aarch64
+
+  core:pce_fast:update:
+    desc: Refetch Beetle PCE Fast's source archive and rebuild the device core from it, even if the set is current
+    cmds:
+      - >-
+        rm -f vendor/mednafen_pce_fast_libretro.so vendor/mednafen_pce_fast_libretro.so.meta
+        vendor/pce_fast-src.tar.gz vendor/pce_fast-src.sha
+      - task: core:pce_fast
+
+  core:fceumm:
+    desc: >-
+      Build the aarch64 linux FCEUmm core from its pinned source archive, which ships beside it
+      as its GPL-2.0 section 3(a) corresponding source
+    status:
+      - test -f vendor/fceumm_libretro.so
+      - test "$(cat vendor/fceumm-src.sha 2>/dev/null)" = "{{.FCEUMM_COMMIT}}"
+      - test "$(cat vendor/fceumm_libretro.so.meta 2>/dev/null)" = "$(sh cores/fceumm/build.sh stamp {{.FCEUMM_COMMIT}})"
+    cmds:
+      - task: core:src
+        vars:
+          NAME: fceumm
+          REPO: libretro-fceumm
+          COMMIT: '{{.FCEUMM_COMMIT}}'
+          FILE: Makefile.libretro
+      - task: device:sh
+        vars:
+          CMD: >-
+            sh cores/fceumm/build.sh build {{.FCEUMM_COMMIT}} vendor/fceumm-src.tar.gz
+            target-device/fceumm vendor/fceumm_libretro.so
+      - file vendor/fceumm_libretro.so | grep -q aarch64
+      - >-
+        echo "built vendor/fceumm_libretro.so from vendor/fceumm-src.tar.gz @
+        {{.FCEUMM_COMMIT}}"
+
+  core:fceumm:cross:
+    desc: >-
+      core:fceumm on an x86_64 host without arm64 emulation: cross-compiled in an amd64 container
+      with the aarch64 toolchain
+    cmds:
+      - task: core:src
+        vars:
+          NAME: fceumm
+          REPO: libretro-fceumm
+          COMMIT: '{{.FCEUMM_COMMIT}}'
+          FILE: Makefile.libretro
+      - |
+        set -eu
+        docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src rust:1-bullseye sh -c '
+          set -e
+          apt-get update -qq
+          apt-get install -y -qq gcc-aarch64-linux-gnu >/dev/null
+          CROSS=aarch64-linux-gnu- sh cores/fceumm/build.sh build {{.FCEUMM_COMMIT}} \
+            vendor/fceumm-src.tar.gz target-device/fceumm vendor/fceumm_libretro.so
+          chown -R '"$(id -u):$(id -g)"' vendor target-device'
+      - file vendor/fceumm_libretro.so | grep -q aarch64
+
+  core:fceumm:update:
+    desc: Refetch FCEUmm's source archive and rebuild the device core from it, even if the set is current
+    cmds:
+      - >-
+        rm -f vendor/fceumm_libretro.so vendor/fceumm_libretro.so.meta vendor/fceumm-src.tar.gz
+        vendor/fceumm-src.sha
+      - task: core:fceumm
+
+  core:genesis_plus_gx:
+    desc: >-
+      Build the aarch64 linux Genesis Plus GX core from its pinned source archive, which ships beside it
+      as its licence asks of a build of its source
+    status:
+      - test -f vendor/genesis_plus_gx_libretro.so
+      - test "$(cat vendor/genesis_plus_gx-src.sha 2>/dev/null)" = "{{.GPGX_COMMIT}}"
+      - test "$(cat vendor/genesis_plus_gx_libretro.so.meta 2>/dev/null)" = "$(sh cores/genesis_plus_gx/build.sh stamp {{.GPGX_COMMIT}})"
+    cmds:
+      - task: core:src
+        vars:
+          NAME: genesis_plus_gx
+          REPO: Genesis-Plus-GX
+          COMMIT: '{{.GPGX_COMMIT}}'
+          FILE: Makefile.libretro
+      - task: device:sh
+        vars:
+          CMD: >-
+            sh cores/genesis_plus_gx/build.sh build {{.GPGX_COMMIT}} vendor/genesis_plus_gx-src.tar.gz
+            target-device/genesis_plus_gx vendor/genesis_plus_gx_libretro.so
+      - file vendor/genesis_plus_gx_libretro.so | grep -q aarch64
+      - >-
+        echo "built vendor/genesis_plus_gx_libretro.so from vendor/genesis_plus_gx-src.tar.gz @
+        {{.GPGX_COMMIT}}"
+
+  core:genesis_plus_gx:cross:
+    desc: >-
+      core:genesis_plus_gx on an x86_64 host without arm64 emulation: cross-compiled in an amd64
+      container with the aarch64 toolchain
+    cmds:
+      - task: core:src
+        vars:
+          NAME: genesis_plus_gx
+          REPO: Genesis-Plus-GX
+          COMMIT: '{{.GPGX_COMMIT}}'
+          FILE: Makefile.libretro
+      - |
+        set -eu
+        docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src rust:1-bullseye sh -c '
+          set -e
+          apt-get update -qq
+          apt-get install -y -qq gcc-aarch64-linux-gnu >/dev/null
+          CROSS=aarch64-linux-gnu- sh cores/genesis_plus_gx/build.sh build {{.GPGX_COMMIT}} \
+            vendor/genesis_plus_gx-src.tar.gz target-device/genesis_plus_gx vendor/genesis_plus_gx_libretro.so
+          chown -R '"$(id -u):$(id -g)"' vendor target-device'
+      - file vendor/genesis_plus_gx_libretro.so | grep -q aarch64
+
+  core:genesis_plus_gx:update:
+    desc: Refetch Genesis Plus GX's source archive and rebuild the device core from it, even if the set is current
+    cmds:
+      - >-
+        rm -f vendor/genesis_plus_gx_libretro.so vendor/genesis_plus_gx_libretro.so.meta vendor/genesis_plus_gx-src.tar.gz
+        vendor/genesis_plus_gx-src.sha
+      - task: core:genesis_plus_gx
+
   cores:device:
-    desc: Build every core the device bundle ships, mGBA, gpSP, Snes9x, Supafaust and pcsx_rearmed
-    deps: [core:device, core:gpsp, core:snes9x, core:supafaust, core:pcsx]
+    desc: >-
+      Build every core the device bundle ships, mGBA, gpSP, Snes9x, Supafaust, pcsx_rearmed,
+      Beetle PCE Fast, FCEUmm and Genesis Plus GX
+    deps:
+      - core:device
+      - core:gpsp
+      - core:snes9x
+      - core:supafaust
+      - core:pcsx
+      - core:pce_fast
+      - core:fceumm
+      - core:genesis_plus_gx
 
   device:sh:
     desc: >-
@@ -498,6 +710,31 @@ tasks:
             -p omega-zero --no-default-features --features device
       - file target-device/{{.PROFILE}}/omega-zero | grep -q aarch64
       - 'echo "built target-device/{{.PROFILE}}/omega-zero"'
+
+  build:device:cross:
+    desc: >-
+      Build for the H700 on an x86_64 host without arm64 emulation: cross-compiled in an amd64
+      container with the aarch64 linker, into target-device/aarch64-unknown-linux-gnu/PROFILE.
+      PROFILE=device-dev as for build:device
+    vars:
+      PROFILE: '{{.PROFILE | default "device"}}'
+    cmds:
+      - |
+        set -eu
+        docker run --rm --platform linux/amd64 -e OMEGA_SS_DEVID -e OMEGA_SS_DEVPASSWORD \
+          -v omega-zero-rustup-amd64:/usr/local/rustup -v omega-zero-cargo-amd64:/usr/local/cargo/registry \
+          -e CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+          -v "$PWD":/src -w /src rust:1-bullseye sh -c '
+            set -e
+            apt-get update -qq
+            apt-get install -y -qq gcc-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
+            rustup set default-host x86_64-unknown-linux-gnu
+            rustup target add aarch64-unknown-linux-gnu
+            cargo build --profile {{.PROFILE}} --target aarch64-unknown-linux-gnu \
+              --target-dir target-device -p omega-zero --no-default-features --features device
+            chown -R '"$(id -u):$(id -g)"' target-device'
+      - file target-device/aarch64-unknown-linux-gnu/{{.PROFILE}}/omega-zero | grep -q aarch64
+      - 'echo "built target-device/aarch64-unknown-linux-gnu/{{.PROFILE}}/omega-zero"'
 
   bench:device:
     desc: Build core_bench, omega-retro's headless core benchmark, for the H700. It never ships

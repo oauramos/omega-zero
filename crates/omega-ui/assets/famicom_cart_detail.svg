@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 284">
+  <!-- the cart's edges: its left and top catch the light, its right and bottom turn away -->
+  <rect x="0" y="12" width="5" height="268" fill="#fff" fill-opacity="0.4"/>
+  <rect x="12" y="0" width="408" height="4" fill="#fff" fill-opacity="0.35"/>
+  <rect x="427" y="12" width="5" height="268" fill="#000" fill-opacity="0.4"/>
+  <rect x="4" y="280" width="424" height="4" fill="#000" fill-opacity="0.3"/>
+  <!-- the grip grooves down each side, where fingers pull the cart from the slot -->
+  <rect x="8" y="40" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="8" y="52" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="8" y="64" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="8" y="76" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="414" y="40" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="414" y="52" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="414" y="64" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="414" y="76" width="10" height="3" fill="#000" fill-opacity="0.35"/>
+  <!-- the label's well: shadow along its top and left, a lit lip under and right of it -->
+  <rect x="24" y="24" width="384" height="3" fill="#000" fill-opacity="0.35"/>
+  <rect x="24" y="27" width="3" height="200" fill="#000" fill-opacity="0.3"/>
+  <rect x="27" y="227" width="384" height="3" fill="#fff" fill-opacity="0.35"/>
+  <rect x="408" y="27" width="3" height="203" fill="#fff" fill-opacity="0.3"/>
+  <!-- the step along the foot, over the contacts -->
+  <rect x="16" y="252" width="400" height="3" fill="#000" fill-opacity="0.3"/>
+  <rect x="16" y="255" width="400" height="2" fill="#fff" fill-opacity="0.25"/>
+</svg>

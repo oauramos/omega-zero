@@ -16,6 +16,14 @@ pub enum Outline {
     Rounded,
     Ntsc,
     Sfc,
+    /// The NES Game Pak of America and Europe.
+    Nes,
+    /// Japan's Famicom cart.
+    Famicom,
+    /// The Mega Drive cart of Japan and Europe.
+    MegaDrive,
+    /// The Genesis cart of America.
+    Genesis,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -41,6 +49,10 @@ impl ShellChoice {
             "rounded" => Outline::Rounded,
             "ntsc" => Outline::Ntsc,
             "sfc" => Outline::Sfc,
+            "nes" => Outline::Nes,
+            "famicom" => Outline::Famicom,
+            "megadrive" => Outline::MegaDrive,
+            "genesis" => Outline::Genesis,
             _ => return None,
         };
         let hex = words.next()?;
@@ -68,6 +80,10 @@ impl ShellChoice {
             Outline::Rounded => "rounded",
             Outline::Ntsc => "ntsc",
             Outline::Sfc => "sfc",
+            Outline::Nes => "nes",
+            Outline::Famicom => "famicom",
+            Outline::MegaDrive => "megadrive",
+            Outline::Genesis => "genesis",
         };
         let finish = match self.finish {
             ShellFinish::Solid => "solid",

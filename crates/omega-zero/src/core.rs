@@ -86,6 +86,9 @@ fn stand_in(core: Core) -> MockCore {
         Core::Mgba | Core::Gpsp => MockCore::new(),
         Core::Snes9x | Core::Supafaust => MockCore::sized(256, 224),
         Core::PcsxRearmed => MockCore::sized(320, 240),
+        Core::PceFast => MockCore::sized(256, 240),
+        Core::Fceumm => MockCore::sized(256, 224),
+        Core::GenesisPlusGx => MockCore::sized(320, 224),
     }
 }
 
@@ -170,7 +173,12 @@ pub fn colour_option(which: Core, on: bool) -> Option<(&'static str, &'static st
             "gpsp_color_correction",
             if on { "enabled" } else { "disabled" },
         )),
-        Core::Snes9x | Core::Supafaust | Core::PcsxRearmed => None,
+        Core::Snes9x
+        | Core::Supafaust
+        | Core::PcsxRearmed
+        | Core::PceFast
+        | Core::Fceumm
+        | Core::GenesisPlusGx => None,
     }
 }
 
@@ -208,6 +216,12 @@ pub fn apply_core_options(
 /// interrupts run. The PlayStation runs its own BIOS from BIOS/ when one is there and its
 /// built-in one otherwise, and keeps memory card 1 as the game's save, in Saves/PS1; the
 /// second card, which pcsx_rearmed would keep in a file of its own in Saves, is left out.
+/// Beetle PCE Fast skips frames as the handhelds' cores do, through `pce_fast_frameskip`. FCEUmm
+/// has no frame skipping of its own and skips a frame the frontend says not to draw, as Snes9x
+/// does; its picture is kept to the 224 lines a television showed, 8 cut from the top and the
+/// bottom, so it is exactly twice that on every canvas as the SNES's is. Genesis Plus GX skips
+/// frames through `genesis_plus_gx_frameskip`, and picks each game's pad itself, three buttons
+/// for a game a six button pad confuses.
 pub fn core_options(
     which: Core,
     serial: &str,
@@ -241,6 +255,12 @@ pub fn core_options(
             put("pcsx_rearmed_memcard1", "libretro");
             put("pcsx_rearmed_memcard2", "none");
         }
+        Core::PceFast => put("pce_fast_frameskip", "auto"),
+        Core::Fceumm => {
+            put("fceumm_overscan_v_top", "8");
+            put("fceumm_overscan_v_bottom", "8");
+        }
+        Core::GenesisPlusGx => put("genesis_plus_gx_frameskip", "auto"),
     }
     if let Some((key, value)) = colour_option(which, colour) {
         put(key, value);

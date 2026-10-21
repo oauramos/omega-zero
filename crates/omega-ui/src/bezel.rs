@@ -36,7 +36,9 @@ pub fn bezel_mark_face(platform: Platform, height: u32) -> Option<UndoFace> {
         Platform::Gba => GBA_MARK,
         Platform::Gb => GB_MARK,
         Platform::Gbc => GBC_MARK,
-        Platform::Snes | Platform::Ps1 => return None,
+        Platform::Snes | Platform::Ps1 | Platform::Pce | Platform::Nes | Platform::Md => {
+            return None
+        }
     };
     let mark = decode(png)?;
     let (sw, sh) = (mark.w, mark.h);

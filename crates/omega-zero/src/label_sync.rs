@@ -204,6 +204,9 @@ pub fn system_id(platform: Platform) -> u32 {
         Platform::Gbc => 10,
         Platform::Snes => 4,
         Platform::Ps1 => 57,
+        Platform::Pce => 31,
+        Platform::Nes => 3,
+        Platform::Md => 1,
     }
 }
 
@@ -312,8 +315,11 @@ pub fn label_regions(want: &Want) -> Vec<&'static str> {
     let mut out = tag_regions(&want.stem);
     match want.platform {
         Platform::Gba | Platform::Gb | Platform::Gbc => return regions(&want.stem, &want.code),
-        Platform::Snes => {
-            let region = omega_store::snes::region(&want.rom, &want.stem);
+        Platform::Snes | Platform::Md => {
+            let region = match want.platform {
+                Platform::Md => omega_store::md::region(&want.rom, &want.stem),
+                _ => omega_store::snes::region(&want.rom, &want.stem),
+            };
             out.extend(region.and_then(region_code));
             if region == Some(Region::Usa) {
                 out.retain(|r| AMERICA.contains(r) || *r == "wor");
@@ -342,6 +348,34 @@ pub fn label_regions(want: &Want) -> Vec<&'static str> {
             }
             out.extend(["wor", "us", "eu", "jp"]);
         }
+        // the label suits the card it is drawn on, as the shell does: an American game's black
+        // TurboChip takes an American label, any other game's HuCard a Japanese one
+        Platform::Pce => {
+            if Region::from_tags(&want.stem) == Some(Region::Usa) {
+                out.retain(|r| AMERICA.contains(r) || *r == "wor");
+                out.extend(["us", "wor", "jp", "eu"]);
+            } else {
+                out.retain(|r| !AMERICA.contains(r));
+                out.extend(["jp", "wor", "eu", "us"]);
+            }
+        }
+        // the label suits the cart it is drawn on: a Japanese game's Famicom cart takes a
+        // Japanese label, any other game's grey NES cart its own region's, then the other's
+        Platform::Nes => match Region::from_tags(&want.stem) {
+            Some(Region::Japan) => {
+                out.retain(|r| *r == "jp");
+                out.extend(["jp", "wor", "us", "eu"]);
+            }
+            Some(Region::Europe) => {
+                out.retain(|r| *r != "jp");
+                out.extend(EUROPE);
+                out.extend(["wor", "us", "jp"]);
+            }
+            _ => {
+                out.retain(|r| *r != "jp");
+                out.extend(["us", "wor", "eu", "jp"]);
+            }
+        },
     }
     once_each(out)
 }
@@ -396,16 +430,21 @@ pub struct Lookup {
 /// image far more than this.
 const CUE_MAX: u64 = 64 * 1024;
 
-/// The copier header some SNES dumps start with, which leaves the file 512 bytes past a whole
+/// The copier header some SNES and PC Engine dumps start with, which leaves the file 512 bytes past a whole
 /// number of KiB.
 const COPIER: u64 = 512;
 
+/// The tag an iNES image starts with, and the header it starts, which No-Intro's CRCs, and so
+/// most of ScreenScraper's, leave out.
+const INES: &[u8] = b"NES\x1a";
+const INES_HEADER: usize = 16;
+
 /// The ways `want` is asked about, tried in turn while ScreenScraper knows none of them.
 ///
-/// A cart is asked about by the CRC of all of it, its name and size; a SNES dump with a copier
-/// header in front, which ScreenScraper keeps both with and without, also by the CRC and size
-/// of the ROM after it. A PlayStation disc is never read whole, hundreds of megabytes taking
-/// far too long on the console: it is asked about by its cue sheet's CRC (ScreenScraper keeps
+/// A cart is asked about by the CRC of all of it, its name and size; a SNES or PC Engine dump
+/// with a copier header in front, or an NES image with its iNES header, which ScreenScraper keeps
+/// both with and without, also by the CRC and size of the ROM after it. A PlayStation disc is
+/// never read whole, hundreds of megabytes taking far too long on the console: it is asked about by its cue sheet's CRC (ScreenScraper keeps
 /// the cue sheets of the discs it knows, a few hundred bytes each), then by the serial printed
 /// on it, then by its file's name and size alone, which ScreenScraper matches as best it can.
 /// Nothing when the file cannot be read.
@@ -429,8 +468,16 @@ pub fn lookups(want: &Want) -> Vec<Lookup> {
             serial: None,
         };
         let mut out = vec![whole.clone()];
-        if want.platform == Platform::Snes && whole.size % 1024 == COPIER {
-            let rom = &bytes[COPIER as usize..];
+        let copied = matches!(want.platform, Platform::Snes | Platform::Pce);
+        let header = if copied && whole.size % 1024 == COPIER {
+            COPIER as usize
+        } else if want.platform == Platform::Nes && bytes.starts_with(INES) {
+            INES_HEADER
+        } else {
+            0
+        };
+        if header > 0 && bytes.len() > header {
+            let rom = &bytes[header..];
             out.push(Lookup {
                 crc: Some(crc32(rom)),
                 size: rom.len() as u64,

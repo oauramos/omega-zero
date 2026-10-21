@@ -8,6 +8,7 @@ mod font;
 pub mod gb;
 mod gba;
 pub mod ini;
+pub mod md;
 mod platform;
 pub mod ps1;
 mod region;

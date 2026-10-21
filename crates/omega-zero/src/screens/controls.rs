@@ -67,7 +67,7 @@ impl ControlsView {
         match platform {
             Platform::Gba | Platform::Gb | Platform::Gbc => game.push(("SELECT+MENU", "LINK")),
             Platform::Ps1 => game.push(("SELECT+MENU", "DISC")),
-            Platform::Snes => {}
+            Platform::Snes | Platform::Pce | Platform::Nes | Platform::Md => {}
         }
         game.extend([
             ("SELECT+▲▼", "BRIGHTNESS"),
@@ -78,6 +78,10 @@ impl ControlsView {
         if platform.colour_correction() {
             game.push(("SELECT+Y", "COLOUR"));
         }
+        if platform.picture_toggle() {
+            game.push(("SELECT+Y", "PICTURE SIZE"));
+        }
+        game.push(("SELECT+X", "SHADER"));
         if platform.owns_shoulders() {
             game.push(("L1 R1", "PICTURE SIZE"));
         }

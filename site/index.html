@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>omega-zero</title>
-<meta name="description" content="A Game Boy-centric frontend for Anbernic H700 handhelds running BaseOS, for GBA, GBC, GB, SNES and PlayStation games.">
+<meta name="description" content="A Game Boy-centric frontend for Anbernic H700 handhelds running BaseOS, for GBA, GBC, GB, NES, SNES, Mega Drive, PC Engine and PlayStation games.">
 <meta name="author" content="Otávio (@oauramos)">
 <link rel="author" href="https://github.com/oauramos">
 <meta name="theme-color" content="#050508">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://oauramos.github.io/omega-zero/">
 <meta property="og:title" content="omega-zero">
-<meta property="og:description" content="A Game Boy-centric frontend for Anbernic H700 handhelds running BaseOS, for GBA, GBC, GB, SNES and PlayStation games.">
+<meta property="og:description" content="A Game Boy-centric frontend for Anbernic H700 handhelds running BaseOS, for GBA, GBC, GB, NES, SNES, Mega Drive, PC Engine and PlayStation games.">
 <meta property="og:image" content="https://oauramos.github.io/omega-zero/logo/bootlogo-pixel-640x480.png">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">
@@ -19,7 +19,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "omega-zero",
-  "description": "A Game Boy-centric frontend for Anbernic H700 handhelds running BaseOS, for GBA, GBC, GB, SNES and PlayStation games.",
+  "description": "A Game Boy-centric frontend for Anbernic H700 handhelds running BaseOS, for GBA, GBC, GB, NES, SNES, Mega Drive, PC Engine and PlayStation games.",
   "url": "https://oauramos.github.io/omega-zero/",
   "applicationCategory": "GameApplication",
   "operatingSystem": "BaseOS",
@@ -88,7 +88,7 @@
         </picture></p>
         <p class="tagline">A Game Boy-centric frontend for Anbernic H700 handhelds running
           <a href="https://github.com/pvaibhav/BaseOS">BaseOS</a>. It plays GBA, GBC and GB games, and
-          SNES and PlayStation games too, on a shelf of cartridges and discs that go down into the
+          NES, SNES, Mega Drive, PC Engine and PlayStation games too, on a shelf of cartridges and discs that go down into the
           handheld when you play them.</p>
         <div class="buttons">
           <omega-button primary><a href="https://github.com/oauramos/omega-zero/releases/latest">DOWNLOAD</a></omega-button>
@@ -119,7 +119,7 @@
         <div class="cards cards-four">
           <omega-card icon="cart">
             <h3 slot="title">The shelf</h3>
-            <p>Game Boy carts in their own plastics, SNES carts and PlayStation discs, with real
+            <p>Game Boy carts in their own plastics, NES and Famicom carts, SNES carts, Mega Drive and Genesis carts, PC Engine HuCards and PlayStation discs, with real
               label scans. The one you are on floats and sways, and goes down into the handheld as
               the game comes on like a tube TV.</p>
           </omega-card>
@@ -129,9 +129,9 @@
               to screen.</p>
           </omega-card>
           <omega-card icon="chip">
-            <h3 slot="title">Five cores</h3>
-            <p>mGBA and gpSP for the GBA, Snes9x and Supafaust for the SNES, chosen per cart, and
-              PCSX ReARMed for the PlayStation.</p>
+            <h3 slot="title">Eight cores</h3>
+            <p>mGBA and gpSP for the GBA, Snes9x and Supafaust for the SNES, chosen per cart,
+              FCEUmm for the NES, Genesis Plus GX for the Mega Drive, Beetle PCE Fast for the PC Engine and PCSX ReARMed for the PlayStation.</p>
           </omega-card>
           <omega-card icon="wifi">
             <h3 slot="title">Network</h3>
@@ -170,8 +170,9 @@
         <omega-screen led><img src="media/game.png" width="640" height="480" loading="lazy"
           alt="A test pattern standing in for a GBA game, filling the width of the screen over the console's body with the GAME BOY ADVANCE logo, and the VOLUME gauge over its top"></omega-screen>
         <figcaption>In a game. GBA fills the width of a 640x480 screen through a sharp scaler, over
-          the console's body; Game Boy stays at 3x through an LCD mask. The SNES is drawn at twice
-          its size and the PlayStation at 4:3, both through the sharp scaler.</figcaption>
+          the console's body; Game Boy stays at 3x through an LCD mask. The NES, SNES, Mega Drive
+          and PC Engine are drawn at twice their size and the PlayStation at 4:3, all through the sharp scaler;
+          SELECT+Y goes round integer, 4:3 and stretched, and SELECT+X through screen looks.</figcaption>
       </figure>
       <figure class="shot" id="shot-settings" data-label="SETTINGS">
         <omega-screen led><img src="media/settings.png" width="640" height="480" loading="lazy"
@@ -240,7 +241,7 @@
           <omega-row label="BASEOS" value="FOR YOUR MODEL"></omega-row>
           <omega-row label="MICROSD" value="ONE OR TWO"></omega-row>
           <omega-row label="OMEGA-ZERO" value="LATEST"></omega-row>
-          <omega-row label="GAMES" value="GBA GB GBC SNES PS1"></omega-row>
+          <omega-row label="GAMES" value="GBA GB GBC NES SNES MD PCE PS1"></omega-row>
         </omega-panel>
       </omega-modal>
       <div class="prose">
@@ -271,7 +272,9 @@
               release</a>, unzip it, and copy the contents of the <code>omega-zero-vX.Y.Z/</code>
               folder to the root of the card.</li>
             <li>Put your games in <code>Games/GBA</code>, <code>Games/GB</code>,
-              <code>Games/GBC</code>, <code>Games/SNES</code> and <code>Games/PS1</code>. Labels
+              <code>Games/GBC</code>, <code>Games/NES</code>, <code>Games/SNES</code>,
+              <code>Games/MD</code>, <code>Games/PCE</code> and
+              <code>Games/PS1</code>. Labels
               are optional: omega-zero can fetch them itself over Wi-Fi.</li>
             <li>Put the card back in SD1 and boot. On the shelf, START opens Settings and a tap of
               SELECT shows every button.</li>
@@ -302,7 +305,10 @@
           <omega-code label="FOLDERS"><pre>Games/GBA/     your legally obtained games,
 Games/GB/      a folder for each platform
 Games/GBC/
+Games/NES/     .nes
 Games/SNES/    .sfc and .smc
+Games/MD/      .md, .gen and .bin
+Games/PCE/     .pce
 Games/PS1/     .cue with its .bin, .chd, .pbp or .m3u,
                also one folder down
 Labels/...     cart labels: a .png named after the ROM
@@ -321,7 +327,9 @@ System/        omega-zero itself, its cores and its
           <p>A label for <code>Games/GBA/Metroid Fusion.gba</code> is
             <code>Labels/GBA/Metroid Fusion.png</code>. Per-cart shell colours go in
             <code>Config/cart_shell.ini</code>, which can also stand a SNES cart in the American
-            shape, <code>ntsc</code>, or the Super Famicom's, <code>sfc</code>.</p>
+            shape, <code>ntsc</code>, or the Super Famicom's, <code>sfc</code>, and an NES cart as the
+            Game Pak, <code>nes</code>, or a Famicom cart, <code>famicom</code>, and a Mega Drive cart
+            as the Mega Drive's, <code>megadrive</code>, or the Genesis's, <code>genesis</code>.</p>
           <p>A PlayStation game on several discs is one game on the shelf: its files named
             <code>(Disc 1)</code>, <code>(Disc 2)</code> and so on are put together, or list them
             in an <code>.m3u</code> yourself.</p>
@@ -461,12 +469,15 @@ System/        omega-zero itself, its cores and its
           sways; tap A and it goes down into the handheld, and the game comes on like a tube TV and
           resumes from its last save state. Hold MENU in a game to save a state, eject the cart and
           go back to the shelf.</p>
-        <p>A SNES game from the USA stands as the American SNES cart, and one from Japan, Europe or
-          anywhere else as the Super Famicom cart, as it was sold. A PlayStation game stands as its
+        <p>An NES game stands as the grey Game Pak, and one from Japan as a Famicom cart in its game's
+          own colour. A SNES game from the USA stands as the American SNES cart, and one from Japan, Europe or
+          anywhere else as the Super Famicom cart, as it was sold, and a Mega Drive game from the USA as
+          the Genesis cart and any other as the Mega Drive's. A PC Engine game stands as a HuCard,
+          a black TurboChip for one from the USA. A PlayStation game stands as its
           disc; one on several discs stands as a stack of them, a gap between each, and the whole
           stack goes down into the handheld. In a game, SELECT+MENU opens DISC to put another disc
           in.</p>
-        <p class="dim">The shelf's system, GBA, GB, GBC, SNES or PS1, shows in a pill in the bottom
+        <p class="dim">The shelf's system, GBA, GB, GBC, NES, SNES, MD, PCE or PS1, shows in a pill in the bottom
           bar; L1 and R1 change it, and Up and Down jump to a letter. Game Boy carts stand at
           80%.</p>
       </div>
@@ -549,23 +560,25 @@ System/        omega-zero itself, its cores and its
         <div class="cards">
           <omega-card icon="cart">
             <h4 slot="title">The shelf</h4>
-            <p>Game Boy carts in their own plastics, SNES carts in the American or the Super
-              Famicom shape and PlayStation discs, with real label scans, modelled low-poly and
+            <p>Game Boy carts in their own plastics, NES and Famicom carts, SNES carts in the American or the Super
+              Famicom shape, Mega Drive and Genesis carts, PC Engine HuCards and PlayStation discs, with
+              real label scans, modelled low-poly and
               drawn the way a PlayStation drew 3D. The one you are on floats and sways; A pulls it
               down out of the screen into the handheld, and the game comes on like a tube TV. At
               power-on, an opening after Mega Man X5's boot terminal fades into the shelf.</p>
           </omega-card>
           <omega-card icon="chip">
-            <h4 slot="title">Five cores</h4>
+            <h4 slot="title">Eight cores</h4>
             <p>mGBA and gpSP for the GBA and Snes9x and Supafaust for the SNES, chosen per cart;
-              PCSX ReARMed for the PlayStation, a BIOS of its own built in. GBA fills a 640x480
-              screen and the PlayStation fills it at 4:3; the SNES is drawn at twice its size and
-              Game Boy stays at 3x.</p>
+              FCEUmm for the NES; Genesis Plus GX for the Mega Drive; Beetle PCE Fast for the PC Engine; PCSX ReARMed for the PlayStation, a BIOS of its own built in. GBA fills a 640x480
+              screen and the PlayStation fills it at 4:3; the NES, SNES, Mega Drive and PC Engine
+              are drawn at twice their size, and Game Boy stays at 3x. SELECT+Y goes round integer, 4:3 and
+              stretched.</p>
           </omega-card>
           <omega-card icon="rewind">
             <h4 slot="title">Pick up, rewind</h4>
             <p>Resume on boot, save states with a switcher, rewind (not on the PlayStation),
-              fast-forward, and turbo buttons on the Game Boys.</p>
+              fast-forward, and turbo buttons on the Game Boys and the NES.</p>
           </omega-card>
           <omega-card icon="link">
             <h4 slot="title">Link play</h4>
@@ -632,9 +645,14 @@ System/        omega-zero itself, its cores and its
             <li><a href="https://github.com/pvaibhav/BaseOS">BaseOS</a> by pvaibhav.</li>
             <li>Emulation by <a href="https://mgba.io">mGBA</a> (MPL-2.0) and
               <a href="https://github.com/libretro/gpsp">gpSP</a> (GPL-2.0) for the Game Boys;
+              <a href="https://github.com/libretro/libretro-fceumm">FCEUmm</a> (GPL-2.0) for the NES;
               <a href="https://github.com/libretro/snes9x">Snes9x</a> (free for non-commercial use
               only) and <a href="https://github.com/libretro/supafaust">Supafaust</a>, Mednafen's
-              snes_faust (GPL-2.0), for the SNES; and
+              snes_faust (GPL-2.0), for the SNES;
+              <a href="https://github.com/libretro/beetle-pce-fast-libretro">Beetle PCE Fast</a>,
+              Mednafen's pce_fast (GPL-2.0), for the PC Engine;
+              <a href="https://github.com/libretro/Genesis-Plus-GX">Genesis Plus GX</a> (free for
+              non-commercial use only) for the Mega Drive; and
               <a href="https://github.com/libretro/pcsx_rearmed">PCSX ReARMed</a> (GPL-2.0) for the
               PlayStation. Their licences and patches, and the source of all but mGBA, ship in
               System/licenses/.</li>
@@ -650,8 +668,10 @@ System/        omega-zero itself, its cores and its
         <div class="steps">
           <p>omega-zero is free software under the GPL-3.0-or-later. This page is drawn with its
             <a href="kit/storybook.html">UI kit</a>.</p>
-          <p class="dim">Game Boy, Game Boy Color, Game Boy Advance, Super Nintendo Entertainment
-            System and Super Famicom are trademarks of Nintendo. PlayStation is a trademark of Sony
+          <p class="dim">Game Boy, Game Boy Color, Game Boy Advance, Nintendo Entertainment System,
+            Famicom, Super Nintendo Entertainment System and Super Famicom are trademarks of
+            Nintendo. Mega Drive and Genesis are
+            trademarks of Sega. PC Engine and TurboGrafx-16 are trademarks of Konami. PlayStation is a trademark of Sony
             Interactive Entertainment. Anbernic is a trademark of its owner. This project is not
             affiliated with any of them.</p>
         </div>

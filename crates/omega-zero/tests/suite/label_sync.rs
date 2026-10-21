@@ -965,3 +965,145 @@ fn a_disc_no_way_of_asking_finds_is_not_on_screenscraper() {
         }))
     );
 }
+
+#[test]
+fn a_pc_engine_label_suits_the_card_it_is_drawn_on() {
+    let pce = |stem: &str| {
+        Want::cart(&cart(
+            Platform::Pce,
+            stem,
+            PathBuf::from(format!("/nowhere/{stem}.pce")),
+            None,
+        ))
+    };
+    assert_eq!(
+        label_regions(&pce("Bonk's Adventure (USA)")),
+        ["us", "wor", "jp", "eu"]
+    );
+    assert_eq!(
+        label_regions(&pce("PC Genjin (Japan)")),
+        ["jp", "wor", "eu", "us"]
+    );
+    assert_eq!(
+        label_regions(&pce("Gomola Speed")),
+        ["jp", "wor", "eu", "us"]
+    );
+    assert_eq!(
+        label_regions(&pce("R-Type (Japan, USA)"))[0],
+        "jp",
+        "a pale HuCard took an American label first"
+    );
+}
+
+#[test]
+fn a_hucard_is_asked_about_as_system_31_and_a_headered_dump_without_its_header_too() {
+    let root = tempfile::tempdir().unwrap();
+    let rom = root.path().join("Games/PCE/Bonk's Adventure (USA).pce");
+    touch(&rom, &vec![0x11_u8; 2048]);
+    let card = cart(Platform::Pce, "Bonk's Adventure (USA)", rom, None);
+    let asked = lookups(&Want::cart(&card));
+    assert_eq!(asked.len(), 1);
+    assert_eq!((asked[0].system, asked[0].kind), (31, "rom"));
+    assert!(game_url(("id", "pw"), &Account::default(), &asked[0]).contains("systemeid=31"));
+
+    let headered = root.path().join("Games/PCE/PC Genjin (Japan).pce");
+    let mut dump = vec![0u8; 512];
+    dump.extend(vec![0x22_u8; 2048]);
+    touch(&headered, &dump);
+    let card = cart(Platform::Pce, "PC Genjin (Japan)", headered, None);
+    let asked = lookups(&Want::cart(&card));
+    assert_eq!(asked.len(), 2);
+    assert_eq!(
+        (asked[1].crc, asked[1].size),
+        (Some(crc32(&dump[512..])), 2048)
+    );
+}
+
+#[test]
+fn an_nes_label_suits_the_cart_it_is_drawn_on() {
+    let nes = |stem: &str| {
+        Want::cart(&cart(
+            Platform::Nes,
+            stem,
+            PathBuf::from(format!("/nowhere/{stem}.nes")),
+            None,
+        ))
+    };
+    assert_eq!(
+        label_regions(&nes("Super Mario Bros. 3 (USA)")),
+        ["us", "wor", "eu", "jp"]
+    );
+    assert_eq!(
+        label_regions(&nes("Super Mario Bros. 3 (Japan)")),
+        ["jp", "wor", "us", "eu"]
+    );
+    assert_eq!(
+        label_regions(&nes("Super Mario Bros. 3 (Europe)")),
+        joined(&[&EUROPEAN, &["wor", "us", "jp"]])
+    );
+    assert_eq!(label_regions(&nes("Tetris"))[0], "us");
+}
+
+#[test]
+fn an_nes_image_is_asked_about_as_system_3_with_its_ines_header_and_without() {
+    let root = tempfile::tempdir().unwrap();
+    let rom = root.path().join("Games/NES/Super Mario Bros. (World).nes");
+    let mut image = b"NES\x1a\x02\x01".to_vec();
+    image.resize(16, 0);
+    image.extend(vec![0x33_u8; 40 * 1024]);
+    touch(&rom, &image);
+    let nes = cart(Platform::Nes, "Super Mario Bros. (World)", rom, None);
+    let asked = lookups(&Want::cart(&nes));
+    assert_eq!(asked.len(), 2);
+    assert_eq!((asked[0].system, asked[0].kind), (3, "rom"));
+    assert_eq!(
+        (asked[0].crc, asked[0].size),
+        (Some(crc32(&image)), image.len() as u64)
+    );
+    assert_eq!(
+        (asked[1].crc, asked[1].size),
+        (Some(crc32(&image[16..])), 40 * 1024),
+        "not the ROM after the iNES header"
+    );
+
+    let bare = root.path().join("Games/NES/Bare.nes");
+    touch(&bare, &vec![0x44_u8; 1024]);
+    let bare = cart(Platform::Nes, "Bare", bare, None);
+    assert_eq!(
+        lookups(&Want::cart(&bare)).len(),
+        1,
+        "a headerless image is asked about once"
+    );
+}
+
+#[test]
+fn a_mega_drive_label_suits_the_cart_it_is_drawn_on() {
+    let md = |stem: &str| {
+        Want::cart(&cart(
+            Platform::Md,
+            stem,
+            PathBuf::from(format!("/nowhere/{stem}.md")),
+            None,
+        ))
+    };
+    assert_eq!(
+        label_regions(&md("Sonic the Hedgehog (USA, Europe)")),
+        joined(&[&AMERICAN, &["wor"], &EUROPEAN, &["jp"]]),
+        "a Genesis cart took a European label first"
+    );
+    assert_eq!(
+        label_regions(&md("Puyo Puyo (Japan)")),
+        joined(&[&["jp"], &EUROPEAN, &["wor"], &AMERICAN])
+    );
+    assert_eq!(
+        label_regions(&md("Probotector (Europe)"))[..2],
+        ["eu", "uk"]
+    );
+    let asked = lookups(&Want::cart(&cart(
+        Platform::Md,
+        "Gone",
+        PathBuf::from("/nowhere/Gone.md"),
+        None,
+    )));
+    assert!(asked.is_empty());
+}

@@ -1,6 +1,6 @@
 use crate::common;
 
-use omega_retro::LibretroCore;
+use omega_retro::{LibretroCore, RetroCore};
 use omega_store::Core;
 use omega_zero::link_kind::{serial_option, LinkKind};
 
@@ -8,6 +8,16 @@ fn dylib_for(core: Core) -> std::path::PathBuf {
     std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../vendor")
         .join(omega_zero::core::dylib_name(core))
+}
+
+/// An NES image FCEUmm takes: an iNES header for mapper 0, one 16 KiB bank of code and one
+/// 8 KiB bank of tiles, all blank.
+fn blank_nes_rom() -> tempfile::NamedTempFile {
+    let mut image = b"NES\x1a\x01\x01".to_vec();
+    image.resize(16 + 16 * 1024 + 8 * 1024, 0);
+    let f = tempfile::Builder::new().suffix(".nes").tempfile().unwrap();
+    std::fs::write(f.path(), image).unwrap();
+    f
 }
 
 fn every_serial_mode() -> Vec<&'static str> {
@@ -67,6 +77,12 @@ fn every_option_omega_zero_sets_is_one_the_core_declares() {
                 for colour in [false, true] {
                     let mut core = LibretroCore::open(&path).expect("open core");
                     omega_zero::core::apply_core_options(&mut core, which, serial, bios, colour);
+                    if which == Core::Fceumm {
+                        // FCEUmm declares its options once a game is in, its DIP switches
+                        // among them
+                        let rom = blank_nes_rom();
+                        RetroCore::load(&mut core, rom.path()).expect("load an NES image");
+                    }
                     every_option_is_one_the_core_has(
                         &core,
                         &format!(

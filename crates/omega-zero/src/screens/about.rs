@@ -33,16 +33,16 @@ pub const CREDITS_TITLE: &str = "CREDITS";
 pub const AUTHOR: &str = "@OAURAMOS";
 
 /// What omega-zero is made with and on, a line each, each name in its own case: the cores first,
-/// with their licences, Snes9x's allowing no commercial use. The longest is as long as a line
+/// with their licences, Snes9x's and Genesis Plus GX's allowing no commercial use. The longest is as long as a line
 /// can be in the credits' well at 640x480, 44 letters, and the well holds eight. No hyphen
 /// stands between two small letters: Chrome sets one a pixel lower there than Rust can.
 pub const CREDITS: [&str; 8] = [
     "Emulation by mGBA (MPL-2.0), gpSP (GPL-2.0),",
-    "Snes9x (no commercial use), Mednafen's",
-    "Supafaust and PCSX-ReARMed (both GPL-2.0).",
-    "Made on BaseOS by pvaibhav.",
-    "Type is Pixel Code by Qwerasd.",
-    "Panel mask from GigaHerz's LCD3x.",
+    "Snes9x, Genesis Plus GX (no commercial use),",
+    "Mednafen's Supafaust, Beetle PCE Fast,",
+    "PCSX-ReARMed, FCEUmm (all GPL-2.0).",
+    "BaseOS by pvaibhav, Pixel Code by Qwerasd,",
+    "panel mask from GigaHerz's LCD3x.",
     "Labels: ScreenScraper. Built with Claude.",
     "Free software under the GPL-3.0. See README.",
 ];

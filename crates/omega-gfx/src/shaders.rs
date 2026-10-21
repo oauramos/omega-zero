@@ -196,6 +196,73 @@ void main() {
 }
 "#;
 
+/// The sharp view with a screen look over it, chosen by `u_mode`: 1 an LCD's subpixel stripes,
+/// 2 its pixel grid, 3 the GBA's round dots, 4 a television's scanlines and 5 a CRT's scanlines
+/// through an aperture grille. The LCD looks follow the game's pixels, which they are drawn
+/// over at whole scales; the scanlines and the CRT follow the screen's own rows and columns,
+/// laid over the picture once it is scaled, so they stay even at 4:3 and stretched. The LCD, grid and dot looks are slot's ports from the libretro
+/// shader collection (licenses/shaders.txt): LCD3x by Gigaherz and Dot by Themaister, both
+/// public domain, and the grid of zfast_lcd_standard by Greg Hogan, GPL-2.0-or-later.
+pub const GAME_LOOK_FRAG: &str = r#"
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform sampler2D u_game;
+uniform vec2 u_src;
+uniform vec4 u_uv;
+uniform vec2 u_scale;
+uniform float u_bright;
+uniform float u_glow;
+uniform float u_mode;
+varying vec2 v_uv;
+const vec3 offsets = vec3(3.141592654) * vec3(1.0 / 2.0, 1.0 / 2.0 - 2.0 / 3.0, 1.0 / 2.0 - 4.0 / 3.0);
+vec2 grid_band(vec2 x) {
+    return floor(x) / 3.0 + min(fract(x), vec2(1.0 / 3.0));
+}
+float dot_weight(vec2 f, vec2 o, float bloom) {
+    return exp(-4.0 * length(f - (o + vec2(0.5))) * bloom);
+}
+void main() {
+    vec2 texel = (u_uv.xy + v_uv * u_uv.zw) * u_src;
+    vec2 from_centre = fract(texel) - 0.5;
+    vec2 region = 0.5 - 0.5 / u_scale;
+    vec2 s = (from_centre - clamp(from_centre, -region, region)) * u_scale + 0.5;
+    vec3 c = texture2D(u_game, (floor(texel) + s) / u_src).rgb;
+    vec2 f = fract(texel);
+    float row = mod(floor(gl_FragCoord.y), 2.0);
+    if (u_mode > 4.5) {
+        c *= 1.0 - 0.35 * row;
+        float m = mod(floor(gl_FragCoord.x), 3.0);
+        vec3 mask = m < 0.5 ? vec3(1.0, 0.7, 0.7) : (m < 1.5 ? vec3(0.7, 1.0, 0.7) : vec3(0.7, 0.7, 1.0));
+        c = min(c * mask * 1.3, vec3(1.0));
+    } else if (u_mode > 3.5) {
+        c = min(c * (1.0 - 0.45 * row) * 1.12, vec3(1.0));
+    } else if (u_mode > 2.5) {
+        float bloom = mix(1.05, 0.95, dot(c, vec3(0.30, 0.59, 0.11)));
+        float mid = dot_weight(f, vec2(0.0), bloom);
+        float sum = 0.0;
+        for (int j = -1; j <= 1; j++) {
+            for (int i = -1; i <= 1; i++) {
+                sum += dot_weight(f, vec2(float(i), float(j)), bloom);
+            }
+        }
+        c = mix(c, mix(1.2 * c * mid, c * sum, 0.85), 0.85);
+    } else if (u_mode > 1.5) {
+        vec2 hp = 0.5 / u_scale;
+        vec2 edge = (grid_band(f + hp) - grid_band(f - hp)) / (2.0 * hp);
+        c *= 1.0 - 0.75 * max(edge.x, edge.y);
+    } else if (u_mode > 0.5) {
+        vec2 angle = f * 6.283185307;
+        float yfactor = (16.0 + sin(angle.y)) / 17.0;
+        vec3 xfactors = (4.0 + sin(angle.x + offsets)) / 5.0;
+        c *= yfactor * xfactors;
+    }
+    FRAG_COLOR = vec4(mix(c * u_bright, vec3(1.0), u_glow), 1.0);
+}
+"#;
+
 pub const SPRITE_FRAG: &str = r#"
 precision mediump float;
 uniform sampler2D u_tex;

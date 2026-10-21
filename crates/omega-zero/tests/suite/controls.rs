@@ -134,6 +134,7 @@ fn controls_says_what_the_shelf_and_a_gba_game_do_with_each_button() {
             ("SELECT+L1", "LOAD STATE"),
             ("SELECT+R1", "SAVE STATE"),
             ("SELECT+Y", "COLOUR"),
+            ("SELECT+X", "SHADER"),
             ("VOL+ VOL-", "MUTE"),
             ("HOLD POWER", "POWER MENU"),
         ]
@@ -162,7 +163,7 @@ fn a_game_boy_has_no_core_to_pick_and_leaves_l1_and_r1_to_the_picture() {
 }
 
 #[test]
-fn a_snes_game_rewinds_and_fast_forwards_but_neither_links_nor_corrects_colour() {
+fn a_snes_game_rewinds_and_fast_forwards_and_stretches_but_neither_links_nor_corrects_colour() {
     let view = ControlsView::new(Platform::Snes);
     assert_eq!(view.groups[0].lines, SHELF_WITH_CORES);
     assert_eq!(
@@ -177,6 +178,8 @@ fn a_snes_game_rewinds_and_fast_forwards_but_neither_links_nor_corrects_colour()
             ("SELECT+◀▶", "BLUE LIGHT"),
             ("SELECT+L1", "LOAD STATE"),
             ("SELECT+R1", "SAVE STATE"),
+            ("SELECT+Y", "PICTURE SIZE"),
+            ("SELECT+X", "SHADER"),
             ("VOL+ VOL-", "MUTE"),
             ("HOLD POWER", "POWER MENU"),
         ]
@@ -199,6 +202,8 @@ fn a_playstation_game_fast_forwards_on_select_r2_and_swaps_discs() {
             ("SELECT+◀▶", "BLUE LIGHT"),
             ("SELECT+L1", "LOAD STATE"),
             ("SELECT+R1", "SAVE STATE"),
+            ("SELECT+Y", "PICTURE SIZE"),
+            ("SELECT+X", "SHADER"),
             ("VOL+ VOL-", "MUTE"),
             ("HOLD POWER", "POWER MENU"),
         ]

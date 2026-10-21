@@ -81,6 +81,9 @@ pub use models::disc::{
     push_disc, push_disc_alone, push_stack, stack_of, DiscStack, StackDive, StackMeshes, DISC_PX,
     MAX_STACK, STACK_DIVE,
 };
+pub use models::hucard::silhouette as hucard_silhouette;
+pub use models::md::{silhouette as md_silhouette, MdShell};
+pub use models::nes::{silhouette as nes_silhouette, NesShell};
 pub use models::snes::{silhouette as snes_silhouette, SnesShell};
 pub use motion::ease;
 pub use opening::{opening_line, OPENING_ADVANCE, OPENING_PITCH, OPENING_RISE};
@@ -98,9 +101,11 @@ pub use shelf::{
     GB_SHELF_SCALE,
 };
 pub use shell::{
-    gb_table_shells, gba_shell_for, lookup_order_is_exact_then_family_then_default, shell_for,
-    shell_presets, table_keys, Finish, Shell, DEFAULT_SHELL, DMG_SHELL, DUAL_MODE_SHELL,
-    GB_CLEAR_SHELL, SFC_SHELL, SNES_SHELL,
+    famicom_shell_for, gb_table_shells, gba_shell_for,
+    lookup_order_is_exact_then_family_then_default, shell_for, shell_presets, table_keys, Finish,
+    Shell, DEFAULT_SHELL, DMG_SHELL, DUAL_MODE_SHELL, FAMICOM_SHELLS, GB_CLEAR_SHELL,
+    GENESIS_SHELL, HUCARD_SHELL, MEGA_DRIVE_SHELL, NES_SHELL, SFC_SHELL, SNES_SHELL,
+    TURBOCHIP_SHELL,
 };
 pub use silhouette::{gb_silhouette, silhouette, GbShell};
 pub use spin::{

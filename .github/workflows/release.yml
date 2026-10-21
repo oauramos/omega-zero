@@ -80,7 +80,7 @@ jobs:
           out="$TREE"
           file "$out/System/omega-zero" | grep -q aarch64
           # each core an aarch64 library a frontend can open: retro_init and retro_run exported
-          for lib in mgba gpsp snes9x mednafen_supafaust pcsx_rearmed; do
+          for lib in mgba gpsp snes9x mednafen_supafaust pcsx_rearmed mednafen_pce_fast fceumm genesis_plus_gx; do
             so="$out/System/${lib}_libretro.so"
             file "$so" | grep -q aarch64
             nm -D --defined-only "$so" | grep -qw retro_init
@@ -104,9 +104,10 @@ jobs:
           for p in cores/mgba/*.patch; do
             test -f "$out/System/licenses/mgba-$(basename "$p")"
           done
-          # Supafaust and pcsx_rearmed are GPL-2.0 as gpSP is, and Snes9x holds the LGPL-2.1
+          # Supafaust, pcsx_rearmed, Beetle PCE Fast and FCEUmm are GPL-2.0 as gpSP is, Genesis
+          # Plus GX's licence asks for its source beside a build, and Snes9x holds the LGPL-2.1
           # snes_ntsc filter: each one's source, build stamp and patches ship beside it
-          for name in snes9x supafaust pcsx_rearmed; do
+          for name in snes9x supafaust pcsx_rearmed pce_fast fceumm genesis_plus_gx; do
             src_sha="$(cat "vendor/$name-src.sha")"
             test -f "$out/System/licenses/$name-${src_sha}.tar.gz"
             test -f "$out/System/licenses/$name-${src_sha}.meta"
@@ -117,7 +118,7 @@ jobs:
             done
           done
           for licence in snes9x-non-commercial snes9x-snes_ntsc-LGPL-2.1 supafaust-GPL-2.0 \
-            pcsx_rearmed-GPL-2.0; do
+            pcsx_rearmed-GPL-2.0 pce_fast-GPL-2.0 fceumm-GPL-2.0 genesis_plus_gx-non-commercial; do
             test -f "$out/System/licenses/$licence.txt"
           done
 
@@ -159,7 +160,7 @@ jobs:
 
           Unzip and copy the contents of \`omega-zero-${GITHUB_REF_NAME}/\` to the root of the card omega-zero runs from (SD1 on its own, or SD2 beside it); the [wiki](https://github.com/oauramos/omega-zero/wiki/Installing) has the steps. See the [changelog](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md).
 
-          Emulation by mGBA (MPL-2.0) and gpSP (GPL-2.0) for the Game Boys, Snes9x (free for non-commercial use only) and Supafaust (Mednafen's snes_faust, GPL-2.0) for the SNES, and PCSX ReARMed (GPL-2.0) for the PlayStation. Their licences, patches and source (mGBA's aside) are in \`System/licenses/\`. omega-zero is free software under the GPL-3.0-or-later; its credits are in the README.
+          Emulation by mGBA (MPL-2.0) and gpSP (GPL-2.0) for the Game Boys, Snes9x (free for non-commercial use only) and Supafaust (Mednafen's snes_faust, GPL-2.0) for the SNES, PCSX ReARMed (GPL-2.0) for the PlayStation, Beetle PCE Fast (Mednafen's pce_fast, GPL-2.0) for the PC Engine, FCEUmm (GPL-2.0) for the NES, and Genesis Plus GX (free for non-commercial use only) for the Mega Drive. Their licences, patches and source (mGBA's aside) are in \`System/licenses/\`. omega-zero is free software under the GPL-3.0-or-later; its credits are in the README.
           NOTES
           gh release create "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" --notes-file notes.md

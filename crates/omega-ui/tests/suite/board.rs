@@ -573,7 +573,7 @@ fn every_cores_name_fits_its_chip_with_room_either_side() {
     }
     assert_eq!(
         Core::ALL.map(Core::text),
-        ["mGBA", "gpSP", "Snes9x", "Faust", "PCSX"]
+        ["mGBA", "gpSP", "Snes9x", "Faust", "PCSX", "PCE", "FCEU", "GPGX"]
     );
 }
 

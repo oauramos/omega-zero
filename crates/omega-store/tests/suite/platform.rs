@@ -3,7 +3,10 @@ use omega_store::Platform;
 #[test]
 fn every_platform_has_a_directory() {
     let names: Vec<&str> = Platform::ALL.iter().map(|p| p.dir_name()).collect();
-    assert_eq!(names, vec!["GBA", "GB", "GBC", "SNES", "PS1"]);
+    assert_eq!(
+        names,
+        vec!["GBA", "GB", "GBC", "SNES", "PS1", "PCE", "NES", "MD"]
+    );
 }
 
 #[test]
@@ -15,7 +18,10 @@ fn every_platform_is_a_shelf_of_its_own() {
             Platform::Gb,
             Platform::Gbc,
             Platform::Snes,
-            Platform::Ps1
+            Platform::Ps1,
+            Platform::Pce,
+            Platform::Nes,
+            Platform::Md
         ]
     );
     for (i, p) in Platform::ALL.iter().enumerate() {
@@ -34,4 +40,9 @@ fn each_platform_takes_only_its_own_extensions() {
     assert!(Platform::Gb.accepts(std::path::Path::new("Tetris.gbc")));
     assert!(!Platform::Gb.accepts(std::path::Path::new("Metroid Fusion.gba")));
     assert!(Platform::Gba.accepts(std::path::Path::new("Shrek.GBA")));
+    assert!(Platform::Pce.accepts(std::path::Path::new("Bonk's Adventure.pce")));
+    assert!(!Platform::Pce.accepts(std::path::Path::new("Bonk's Adventure.sgx")));
+    assert!(!Platform::Snes.accepts(std::path::Path::new("Bonk's Adventure.pce")));
+    assert!(Platform::Nes.accepts(std::path::Path::new("Super Mario Bros. (World).nes")));
+    assert!(!Platform::Nes.accepts(std::path::Path::new("Zelda no Densetsu.fds")));
 }

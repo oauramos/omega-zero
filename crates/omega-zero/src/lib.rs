@@ -36,6 +36,7 @@ pub mod rewind;
 pub mod root;
 pub mod screens;
 pub mod session;
+pub mod shader;
 pub mod spawn;
 pub mod ssh;
 pub mod start_notice;

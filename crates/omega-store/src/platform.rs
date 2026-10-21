@@ -8,15 +8,21 @@ pub enum Platform {
     Gbc,
     Snes,
     Ps1,
+    Pce,
+    Nes,
+    Md,
 }
 
 impl Platform {
-    pub const ALL: [Platform; 5] = [
+    pub const ALL: [Platform; 8] = [
         Platform::Gba,
         Platform::Gb,
         Platform::Gbc,
         Platform::Snes,
         Platform::Ps1,
+        Platform::Pce,
+        Platform::Nes,
+        Platform::Md,
     ];
 
     pub fn name(self) -> &'static str {
@@ -26,6 +32,9 @@ impl Platform {
             Platform::Gbc => "Game Boy Color",
             Platform::Snes => "Super Nintendo",
             Platform::Ps1 => "PlayStation",
+            Platform::Pce => "PC Engine",
+            Platform::Nes => "Nintendo Entertainment System",
+            Platform::Md => "Mega Drive",
         }
     }
 
@@ -36,6 +45,9 @@ impl Platform {
             Platform::Gbc => "GBC",
             Platform::Snes => "SNES",
             Platform::Ps1 => "PS1",
+            Platform::Pce => "PCE",
+            Platform::Nes => "NES",
+            Platform::Md => "MD",
         }
     }
 
@@ -45,6 +57,9 @@ impl Platform {
             Platform::Gb | Platform::Gbc => &["gb", "gbc"],
             Platform::Snes => &["sfc", "smc"],
             Platform::Ps1 => &["cue", "chd", "pbp", "m3u"],
+            Platform::Pce => &["pce"],
+            Platform::Nes => &["nes"],
+            Platform::Md => &["md", "gen", "bin"],
         }
     }
 
@@ -54,6 +69,9 @@ impl Platform {
             Platform::Gb | Platform::Gbc => (160, 144),
             Platform::Snes => (256, 224),
             Platform::Ps1 => (320, 240),
+            Platform::Pce => (256, 240),
+            Platform::Nes => (256, 224),
+            Platform::Md => (320, 224),
         }
     }
 
@@ -63,14 +81,26 @@ impl Platform {
         matches!(self, Platform::Gb | Platform::Gbc)
     }
 
-    /// Whether held X/Y are turbo A/B: on the handhelds, whose games have no X or Y.
+    /// Whether held X/Y are turbo A/B: on the handhelds and the NES, whose games have no X or Y.
     pub fn turbo_xy(self) -> bool {
-        matches!(self, Platform::Gba | Platform::Gb | Platform::Gbc)
+        matches!(
+            self,
+            Platform::Gba | Platform::Gb | Platform::Gbc | Platform::Nes
+        )
     }
 
     /// Whether the core's colour correction for a handheld's screen applies.
     pub fn colour_correction(self) -> bool {
         matches!(self, Platform::Gba | Platform::Gb | Platform::Gbc)
+    }
+
+    /// Whether SELECT+Y switches the picture between its actual size and stretched: on the
+    /// television's consoles, which have no colour correction and a picture of their own shape.
+    pub fn picture_toggle(self) -> bool {
+        matches!(
+            self,
+            Platform::Snes | Platform::Ps1 | Platform::Pce | Platform::Nes | Platform::Md
+        )
     }
 
     /// Whether held L2 rewinds: not on the PlayStation, whose games use L2 and whose states

@@ -27,3 +27,6 @@
 
 # Playwright MCP snapshots and console logs from browser checks.
 /.playwright-mcp
+
+# local build settings, such as ScreenScraper's key
+/.env

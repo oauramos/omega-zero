@@ -3,6 +3,8 @@ use std::path::Path;
 use omega_store::gb::Class;
 use omega_store::{Cart, Platform, ShellFinish};
 
+use crate::models::md::MdShell;
+use crate::models::nes::NesShell;
 use crate::models::snes::SnesShell;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -58,6 +60,31 @@ pub const GB_CLEAR_SHELL: Shell = shell([0x7c, 0x7a, 0x8a], Finish::Translucent)
 pub const SNES_SHELL: Shell = shell([0x8b, 0x8a, 0x91], Finish::Solid);
 
 /// The Super Famicom cart's light grey, which Europe's carts share.
+/// The Mega Drive cart of Japan and Europe, and the Genesis cart of America, both black.
+pub const MEGA_DRIVE_SHELL: Shell = shell([0x22, 0x22, 0x25], Finish::Solid);
+pub const GENESIS_SHELL: Shell = shell([0x2a, 0x2a, 0x2d], Finish::Solid);
+
+/// The NES Game Pak, in its grey.
+pub const NES_SHELL: Shell = shell([0x8f, 0x8e, 0x93], Finish::Solid);
+
+/// The colours Famicom carts came in, each game's in one of its own: Nintendo's yellow and
+/// white, Hudson's and Namco's reds and blues, Konami's black and the rest.
+pub const FAMICOM_SHELLS: [Shell; 8] = [
+    shell([0xe8, 0xc3, 0x3a], Finish::Solid),
+    shell([0xea, 0xe6, 0xdc], Finish::Solid),
+    shell([0xc8, 0x36, 0x30], Finish::Solid),
+    shell([0x2f, 0x58, 0xa8], Finish::Solid),
+    shell([0x24, 0x24, 0x27], Finish::Solid),
+    shell([0x3f, 0x8f, 0x4a], Finish::Solid),
+    shell([0xe0, 0x7a, 0x2c], Finish::Solid),
+    shell([0x9a, 0x9a, 0x9e], Finish::Solid),
+];
+
+/// A HuCard from Japan, the PC Engine's, its plastic a pale grey around the label.
+pub const HUCARD_SHELL: Shell = shell([0xcf, 0xcf, 0xca], Finish::Solid);
+/// An American TurboChip, the TurboGrafx-16's HuCard, in black.
+pub const TURBOCHIP_SHELL: Shell = shell([0x2c, 0x2c, 0x30], Finish::Solid);
+
 pub const SFC_SHELL: Shell = shell([0xb7, 0xb6, 0xbb], Finish::Solid);
 
 const GB_CODES: &[(&str, Shell)] = &[
@@ -101,7 +128,31 @@ pub fn shell_for(cart: &Cart) -> Shell {
             SnesShell::Famicom => SFC_SHELL,
         },
         Platform::Ps1 => DEFAULT_SHELL,
+        Platform::Md => match crate::models::md::shell_of(cart) {
+            MdShell::MegaDrive => MEGA_DRIVE_SHELL,
+            MdShell::Genesis => GENESIS_SHELL,
+        },
+        Platform::Nes => match crate::models::nes::shell_of(cart) {
+            NesShell::Nes => NES_SHELL,
+            NesShell::Famicom => famicom_shell_for(&cart.stem),
+        },
+        Platform::Pce => match omega_store::Region::from_tags(&cart.stem) {
+            Some(omega_store::Region::Usa) => TURBOCHIP_SHELL,
+            _ => HUCARD_SHELL,
+        },
     }
+}
+
+/// The colour a Famicom game's cart comes in: always the same one for the same game, its name
+/// without its tags picking it, so every release of a game shares one.
+pub fn famicom_shell_for(stem: &str) -> Shell {
+    let name = stem.split(['(', '[']).next().unwrap_or(stem).trim();
+    let mut h: u32 = 0x811c_9dc5;
+    for b in name.to_ascii_lowercase().bytes() {
+        h ^= u32::from(b);
+        h = h.wrapping_mul(0x0100_0193);
+    }
+    FAMICOM_SHELLS[(h % FAMICOM_SHELLS.len() as u32) as usize]
 }
 
 pub fn gba_shell_for(code: &str) -> Shell {

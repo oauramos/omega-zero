@@ -2,4 +2,7 @@
 //! it stands, kept in its own file so each can be drawn on its own.
 
 pub mod disc;
+pub mod hucard;
+pub mod md;
+pub mod nes;
 pub mod snes;
