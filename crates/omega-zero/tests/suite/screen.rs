@@ -3,7 +3,7 @@ use omega_store::Platform;
 use omega_zero::video_mode::{screen_on, source_rect, VideoMode};
 
 const PLATFORMS: [Platform; 3] = [Platform::Gba, Platform::Gb, Platform::Gbc];
-const MODES: [VideoMode; 2] = [VideoMode::Actual, VideoMode::Stretch];
+const MODES: [VideoMode; 3] = [VideoMode::Actual, VideoMode::Aspect, VideoMode::Stretch];
 
 fn area(r: [f32; 4], c: Canvas) -> f32 {
     let w = (r[0] + r[2]).min(c.w as f32) - r[0].max(0.0);
@@ -192,15 +192,66 @@ fn a_snes_game_showing_its_overscan_is_still_twice_its_size() {
 }
 
 #[test]
-fn a_stretched_snes_game_takes_a_television_s_shape() {
-    for (c, rect) in [
-        (Canvas::FOUR_THREE, [0.0, 0.0, 640.0, 480.0]),
-        (Canvas::WIDE, [40.0, 0.0, 640.0, 480.0]),
-        (Canvas::SQUARE, [0.0, 90.0, 720.0, 540.0]),
-    ] {
-        let s = screen_on_frame(c, Platform::Snes, VideoMode::Stretch, (256, 224));
-        assert_eq!(s.view.rect, rect, "{c:?}");
-        assert_eq!(s.view.filter, Filter::Sharp);
+fn a_console_kept_to_its_aspect_takes_a_television_s_shape() {
+    for platform in [Platform::Snes, Platform::Ps1] {
+        for (c, rect) in [
+            (Canvas::FOUR_THREE, [0.0, 0.0, 640.0, 480.0]),
+            (Canvas::WIDE, [40.0, 0.0, 640.0, 480.0]),
+            (Canvas::SQUARE, [0.0, 90.0, 720.0, 540.0]),
+        ] {
+            let s = screen_on_frame(c, platform, VideoMode::Aspect, (256, 224));
+            assert_eq!(s.view.rect, rect, "{platform:?} {c:?}");
+            assert_eq!(s.view.filter, Filter::Sharp);
+        }
+    }
+}
+
+#[test]
+fn a_stretched_console_fills_the_canvas() {
+    for platform in [Platform::Snes, Platform::Ps1] {
+        for c in Canvas::ALL {
+            let s = screen_on_frame(c, platform, VideoMode::Stretch, (256, 224));
+            assert_eq!(
+                s.view.rect,
+                [0.0, 0.0, c.w as f32, c.h as f32],
+                "{platform:?} {c:?}"
+            );
+            assert!(s.bands.is_empty());
+        }
+    }
+}
+
+#[test]
+fn a_playstation_game_at_its_actual_size_is_a_whole_scale_of_its_lines() {
+    let at = |c, frame| {
+        screen_on_frame(c, Platform::Ps1, VideoMode::Actual, frame)
+            .view
+            .rect
+    };
+    assert_eq!(at(Canvas::FOUR_THREE, (320, 240)), [0.0, 0.0, 640.0, 480.0]);
+    assert_eq!(at(Canvas::WIDE, (320, 240)), [40.0, 0.0, 640.0, 480.0]);
+    assert_eq!(
+        at(Canvas::FOUR_THREE, (320, 224)),
+        [22.0, 16.0, 597.0, 448.0]
+    );
+    assert_eq!(
+        at(Canvas::FOUR_THREE, (640, 480)),
+        at(Canvas::FOUR_THREE, (320, 240)),
+        "an interlaced frame is not the size of its field"
+    );
+}
+
+#[test]
+fn select_y_goes_round_integer_aspect_and_stretch() {
+    assert_eq!(VideoMode::Actual.next(), VideoMode::Aspect);
+    assert_eq!(VideoMode::Aspect.next(), VideoMode::Stretch);
+    assert_eq!(VideoMode::Stretch.next(), VideoMode::Actual);
+    assert_eq!(VideoMode::default_for(Platform::Ps1), VideoMode::Aspect);
+    for p in [Platform::Snes, Platform::Gba, Platform::Gb] {
+        assert_eq!(VideoMode::default_for(p), VideoMode::Actual, "{p:?}");
+    }
+    for m in [VideoMode::Actual, VideoMode::Aspect, VideoMode::Stretch] {
+        assert_eq!(VideoMode::parse(m.as_str()), Some(m));
     }
 }
 
@@ -212,7 +263,7 @@ fn a_playstation_game_is_4_3_and_any_frame_size_fills_it() {
         (Canvas::SQUARE, [0.0, 90.0, 720.0, 540.0]),
     ] {
         for frame in FRAMES {
-            let s = screen_on_frame(c, Platform::Ps1, VideoMode::Actual, frame);
+            let s = screen_on_frame(c, Platform::Ps1, VideoMode::Aspect, frame);
             assert_eq!(s.view.rect, rect, "{c:?} {frame:?}");
             assert_eq!(s.view.uv, WHOLE_TEXTURE);
             assert_eq!(s.view.filter, Filter::Sharp);
@@ -222,7 +273,7 @@ fn a_playstation_game_is_4_3_and_any_frame_size_fills_it() {
         screen_on_frame(
             Canvas::FOUR_THREE,
             Platform::Ps1,
-            VideoMode::Actual,
+            VideoMode::Aspect,
             (320, 240)
         )
         .bands
@@ -230,7 +281,7 @@ fn a_playstation_game_is_4_3_and_any_frame_size_fills_it() {
         "320x240 at 2x fills 640x480"
     );
     assert_eq!(
-        screen_on_frame(Canvas::WIDE, Platform::Ps1, VideoMode::Actual, (320, 240)).bands,
+        screen_on_frame(Canvas::WIDE, Platform::Ps1, VideoMode::Aspect, (320, 240)).bands,
         vec![[0.0, 0.0, 40.0, 480.0], [680.0, 0.0, 40.0, 480.0]]
     );
 }

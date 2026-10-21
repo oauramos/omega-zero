@@ -73,6 +73,12 @@ impl Platform {
         matches!(self, Platform::Gba | Platform::Gb | Platform::Gbc)
     }
 
+    /// Whether SELECT+Y switches the picture between its actual size and stretched: on the
+    /// television's consoles, which have no colour correction and a picture of their own shape.
+    pub fn picture_toggle(self) -> bool {
+        matches!(self, Platform::Snes | Platform::Ps1)
+    }
+
     /// Whether held L2 rewinds: not on the PlayStation, whose games use L2 and whose states
     /// are too big for the rewind buffer.
     pub fn rewinds(self) -> bool {

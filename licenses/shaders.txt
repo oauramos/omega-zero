@@ -1,0 +1,16 @@
+omega-zero's screen looks (SELECT+X in a game) are, but for the scanlines and the CRT, slot's ports
+of shaders from the libretro shader collection
+https://github.com/libretro/glsl-shaders
+by way of slot, https://github.com/BrandonKowalski/slot
+
+LCD by Gigaherz (LCD3x). Public domain.
+
+Dot by Themaister. Public domain.
+Changes in slot: sharper dots (falloff 4.0) and a 0.85 blend.
+
+Grid, the line weighting of zfast_lcd_standard by Greg Hogan (SoltanGris42), copyright (C) 2017.
+GNU General Public License version 2 or later.
+
+The scanlines and the CRT are omega-zero's own.
+
+omega-zero itself is GNU General Public License version 3 or later, which these licenses permit.

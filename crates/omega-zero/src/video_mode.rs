@@ -10,10 +10,14 @@ const _: () = assert!(
     "the handheld layouts are not drawn for the GBA screen a Game Boy picture is centred in"
 );
 
+/// How a game's picture is scaled. A handheld's is its actual size or stretched over the
+/// canvas. A television's console's is its actual size, at the largest whole scale the canvas
+/// holds; a television's 4:3, as large as the canvas holds; or stretched over all of it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum VideoMode {
     #[default]
     Actual,
+    Aspect,
     Stretch,
 }
 
@@ -21,6 +25,7 @@ impl VideoMode {
     pub fn as_str(self) -> &'static str {
         match self {
             VideoMode::Actual => "actual",
+            VideoMode::Aspect => "aspect",
             VideoMode::Stretch => "stretch",
         }
     }
@@ -28,21 +33,44 @@ impl VideoMode {
     pub fn parse(s: &str) -> Option<VideoMode> {
         match s.trim().to_ascii_lowercase().as_str() {
             "actual" => Some(VideoMode::Actual),
+            "aspect" => Some(VideoMode::Aspect),
             "stretch" => Some(VideoMode::Stretch),
             _ => None,
         }
     }
+
+    /// The mode a game of `platform` starts in: the PlayStation's 4:3, whose games change their
+    /// picture's size between menus and play and would otherwise jump with it; anything else's
+    /// actual size.
+    pub fn default_for(platform: Platform) -> VideoMode {
+        match platform {
+            Platform::Ps1 => VideoMode::Aspect,
+            _ => VideoMode::Actual,
+        }
+    }
+
+    /// The mode SELECT+Y goes to from this one on a television's console: actual size, 4:3,
+    /// stretched and round again.
+    pub fn next(self) -> VideoMode {
+        match self {
+            VideoMode::Actual => VideoMode::Aspect,
+            VideoMode::Aspect => VideoMode::Stretch,
+            VideoMode::Stretch => VideoMode::Actual,
+        }
+    }
 }
 
-pub fn video_mode_for(root: &Path, stem: &str) -> VideoMode {
-    ini::value(root, VIDEO_MODE_FILE, stem)
+/// The mode every game of `platform` is played in: the one its system was last left in, kept
+/// under the system's folder name, else its system's first.
+pub fn video_mode_for(root: &Path, platform: Platform) -> VideoMode {
+    ini::value(root, VIDEO_MODE_FILE, platform.dir_name())
         .as_deref()
         .and_then(VideoMode::parse)
-        .unwrap_or_default()
+        .unwrap_or_else(|| VideoMode::default_for(platform))
 }
 
-pub fn write_video_mode(root: &Path, stem: &str, mode: VideoMode) -> std::io::Result<()> {
-    ini::write(root, VIDEO_MODE_FILE, stem, mode.as_str())
+pub fn write_video_mode(root: &Path, platform: Platform, mode: VideoMode) -> std::io::Result<()> {
+    ini::write(root, VIDEO_MODE_FILE, platform.dir_name(), mode.as_str())
 }
 
 /// The part of the game texture a picture mode shows: a Game Boy game's own window when it is
@@ -53,7 +81,7 @@ pub fn source_rect(platform: Platform, mode: VideoMode) -> [f32; 4] {
         return WHOLE_TEXTURE;
     }
     let (w, h) = platform.picture();
-    if mode == VideoMode::Actual || (w, h) == (SRC_W, SRC_H) || w > SRC_W || h > SRC_H {
+    if mode != VideoMode::Stretch || (w, h) == (SRC_W, SRC_H) || w > SRC_W || h > SRC_H {
         return WHOLE_TEXTURE;
     }
     let x = SRC_W.saturating_sub(w) / 2;
@@ -149,7 +177,7 @@ pub fn screen_on_frame(
         Platform::Gb | Platform::Gbc => {
             let whole = [(cw - FRAME.0) / 2.0, (ch - FRAME.1) / 2.0, FRAME.0, FRAME.1];
             let view = match mode {
-                VideoMode::Actual => lcd(whole, actual),
+                VideoMode::Actual | VideoMode::Aspect => lcd(whole, actual),
                 VideoMode::Stretch => lcd([0.0, 0.0, cw, ch], uv),
             };
             Screen {
@@ -177,18 +205,20 @@ const SNES_W: f32 = 256.0;
 ///
 /// The SNES at its actual size is twice its 256 pixels and its lines, 512x448 (512x478 for a
 /// game showing its overscan), on every canvas: 3x would not fit any of them. A hi-res frame,
-/// 512 pixels a line, or an interlaced one, twice the lines, fills the same rect. Stretched, the
-/// SNES takes a television's 4:3, as large as the canvas holds.
+/// 512 pixels a line, or an interlaced one, twice the lines, fills the same rect. Kept to its
+/// aspect, any console takes a television's 4:3, as large as the canvas holds; stretched, it
+/// fills the canvas.
 ///
-/// The PlayStation at its actual size is that 4:3: 640x480 on 640x480, where its usual 320x240
-/// is exactly 2x, centred on 720x480, and 720x540 across 720x720. Stretched, it fills the
-/// canvas.
+/// The PlayStation at its actual size is its lines at the largest whole scale the canvas holds,
+/// a television's 4:3 across: its usual 320x240 is 640x480 on 640x480 and 720x480, as its 4:3
+/// is there.
 fn console_screen(c: Canvas, platform: Platform, mode: VideoMode, frame: (u32, u32)) -> Screen {
     let (cw, ch) = (c.w as f32, c.h as f32);
     let (w, h) = match (platform, mode) {
-        (Platform::Snes, VideoMode::Actual) => snes_whole(cw, ch, frame.1),
-        (Platform::Ps1, VideoMode::Stretch) => (cw, ch),
-        _ => four_three(cw, ch),
+        (Platform::Ps1, VideoMode::Actual) => ps1_whole(cw, ch, frame.1),
+        (_, VideoMode::Actual) => snes_whole(cw, ch, frame.1),
+        (_, VideoMode::Aspect) => four_three(cw, ch),
+        (_, VideoMode::Stretch) => (cw, ch),
     };
     let rect = [((cw - w) / 2.0).round(), ((ch - h) / 2.0).round(), w, h];
     let view = GameView {
@@ -213,6 +243,23 @@ fn snes_whole(cw: f32, ch: f32, lines: u32) -> (f32, f32) {
     } as f32;
     let scale = (cw / SNES_W).min(ch / lines).floor().max(1.0);
     let (w, h) = (SNES_W * scale, lines * scale);
+    if w <= cw && h <= ch {
+        (w, h)
+    } else {
+        four_three(cw, ch)
+    }
+}
+
+/// The PlayStation picture at the largest whole scale of its lines the canvas holds, as wide as
+/// a television's 4:3 makes it: an interlaced frame's lines count as the half they each are.
+fn ps1_whole(cw: f32, ch: f32, lines: u32) -> (f32, f32) {
+    let lines = match lines {
+        0 => 240,
+        l if l > 288 => l / 2,
+        l => l,
+    } as f32;
+    let h = lines * (ch / lines).floor().max(1.0);
+    let w = (h * 4.0 / 3.0).round();
     if w <= cw && h <= ch {
         (w, h)
     } else {

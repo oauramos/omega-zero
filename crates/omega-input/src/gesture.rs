@@ -42,6 +42,10 @@ pub enum Action {
     GameMenu,
     MuteToggle,
     ColourCorrectionToggle,
+    /// SELECT+Y on a television's console: the picture between its actual size and stretched.
+    PictureToggle,
+    /// SELECT+X in a game: the next screen look for the game's system.
+    ShaderNext,
     PowerPress,
     PowerTap,
     PowerHold,
@@ -63,6 +67,9 @@ pub struct Keys {
     pub rewind: bool,
     /// SELECT+Y toggles the colour correction. Off, a Y under SELECT is the game's.
     pub colour: bool,
+    /// SELECT+Y toggles the picture between its actual size and stretched, where there is no
+    /// colour correction to toggle.
+    pub picture: bool,
 }
 
 impl Keys {
@@ -71,6 +78,7 @@ impl Keys {
         game_l2_r2: false,
         rewind: true,
         colour: true,
+        picture: false,
     };
 }
 
@@ -281,6 +289,8 @@ impl Gestures {
             Btn::L1 => (16, Action::LoadState),
             Btn::R1 => (32, Action::SaveState),
             Btn::Y if self.keys.colour => (64, Action::ColourCorrectionToggle),
+            Btn::Y if self.keys.picture => (64, Action::PictureToggle),
+            Btn::X => (SHADER_CHORD, Action::ShaderNext),
             Btn::L2 if self.keys.game_l2_r2 && self.keys.rewind => (L2_CHORD, Action::RewindStart),
             Btn::R2 if self.keys.game_l2_r2 => (R2_CHORD, Action::FfStart),
             _ => return None,
@@ -491,3 +501,6 @@ impl Gestures {
 /// The chord bits of SELECT+L2 and SELECT+R2, held for as long as the shoulder is.
 const L2_CHORD: u16 = 128;
 const R2_CHORD: u16 = 256;
+
+/// The chord bit of SELECT+X, the screen look.
+const SHADER_CHORD: u16 = 512;

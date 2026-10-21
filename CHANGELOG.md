@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- SELECT+X in a game steps through screen looks for its system, kept per system in
+  `Config/shader.ini`: off, LCD, grid and dot for the Game Boys and the GBA, ported from slot's
+  ports of the libretro shaders, and off, scanlines and CRT for the SNES and the PlayStation.
+- The picture size SELECT+Y (or L1 and R1 on the Game Boys) picks is kept per system in
+  `Config/video_mode.ini`, not per game.
+- SELECT+Y goes round a SNES or PlayStation game's picture sizes, and its system keeps the one
+  it was left in: integer, its actual size at the largest whole scale; keep aspect, a television's
+  4:3 rather than the SNES pixels' 8:7, filling a 640x480 screen; and stretch, over the whole
+  screen. A PlayStation game starts in 4:3, as it always has, its picture changing size between
+  menus and play. The handhelds' SELECT+Y is still the colour correction.
+
 ## omega-zero 1.2.0
 
 Supafaust runs SNES games, a game that takes the console down can no longer trap it at boot, and

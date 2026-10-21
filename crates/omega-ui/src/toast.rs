@@ -16,6 +16,14 @@ pub enum Toast {
     BiosMismatch,
     ColourOn,
     ColourOff,
+    /// SELECT+Y on a television's console: the picture at its actual size, a whole scale.
+    PictureActual,
+    /// SELECT+Y on a television's console: the picture a television's 4:3.
+    PictureAspect,
+    /// SELECT+Y on a television's console: the picture stretched over the screen.
+    PictureStretch,
+    /// SELECT+X in a game: the screen look now chosen for its system.
+    Shader(omega_gfx::Look),
     /// SELECT + MENU on a PlayStation game on one disc: there is no other to swap in.
     OneDisc,
     /// The DISC screen swapped disc `n`, counting from 1, into the drive.
@@ -36,8 +44,8 @@ const DISC_IN: [&str; 9] = [
 ];
 
 impl Toast {
-    /// Every toast there is, a disc's once, as disc 1.
-    pub const ALL: [Toast; 11] = [
+    /// Every toast there is, a disc's once, as disc 1, and a shader's once, as none.
+    pub const ALL: [Toast; 15] = [
         Toast::StateSaved,
         Toast::StateLoaded,
         Toast::NeedsGpsp,
@@ -47,6 +55,10 @@ impl Toast {
         Toast::BiosMismatch,
         Toast::ColourOn,
         Toast::ColourOff,
+        Toast::PictureActual,
+        Toast::PictureAspect,
+        Toast::PictureStretch,
+        Toast::Shader(omega_gfx::Look::Off),
         Toast::OneDisc,
         Toast::Disc(1),
     ];
@@ -63,8 +75,12 @@ impl Toast {
             Toast::BiosMismatch => 6,
             Toast::ColourOn => 7,
             Toast::ColourOff => 8,
-            Toast::OneDisc => 9,
-            Toast::Disc(_) => 10,
+            Toast::PictureActual => 9,
+            Toast::PictureAspect => 10,
+            Toast::PictureStretch => 11,
+            Toast::Shader(_) => 12,
+            Toast::OneDisc => 13,
+            Toast::Disc(_) => 14,
         }
     }
 
@@ -78,6 +94,8 @@ impl Toast {
             | Toast::PeerEnded
             | Toast::BiosMismatch => "LINK",
             Toast::ColourOn | Toast::ColourOff => "COLOUR",
+            Toast::PictureActual | Toast::PictureAspect | Toast::PictureStretch => "PICTURE",
+            Toast::Shader(_) => "SHADER",
             Toast::OneDisc | Toast::Disc(_) => "DISC",
         }
     }
@@ -94,6 +112,17 @@ impl Toast {
             Toast::BiosMismatch => "BIOS does not match",
             Toast::ColourOn => "Correction on",
             Toast::ColourOff => "Correction off",
+            Toast::PictureActual => "Integer scale",
+            Toast::PictureAspect => "Keep aspect 4:3",
+            Toast::PictureStretch => "Stretch",
+            Toast::Shader(look) => match look {
+                omega_gfx::Look::Off => "Off",
+                omega_gfx::Look::Lcd => "LCD",
+                omega_gfx::Look::Grid => "Grid",
+                omega_gfx::Look::Dot => "Dot",
+                omega_gfx::Look::Scanlines => "Scanlines",
+                omega_gfx::Look::Crt => "CRT",
+            },
             Toast::OneDisc => "Only one disc",
             Toast::Disc(n) => DISC_IN
                 .get(usize::from(n).wrapping_sub(1))

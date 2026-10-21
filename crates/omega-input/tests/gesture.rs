@@ -515,6 +515,7 @@ const PS1: Keys = Keys {
     game_l2_r2: true,
     rewind: false,
     colour: false,
+    picture: true,
 };
 
 /// The SNES's keys: L2 rewinds and R2 fast-forwards as on the handhelds, and a television's
@@ -523,6 +524,7 @@ const SNES: Keys = Keys {
     game_l2_r2: false,
     rewind: true,
     colour: false,
+    picture: true,
 };
 
 fn with_keys(keys: Keys) -> Gestures {
@@ -645,9 +647,23 @@ fn a_select_tap_still_reaches_a_playstation_game() {
 }
 
 #[test]
-fn select_and_y_is_the_games_where_there_is_no_colour_correction() {
+fn select_and_y_toggles_the_picture_size_on_a_televisions_console() {
     for keys in [PS1, SNES] {
         let mut g = with_keys(keys);
+        assert!(g.feed(Down(Select), 0).is_empty());
+        assert_eq!(g.feed(Down(Y), 10), vec![PictureToggle]);
+        assert!(g.feed(Up(Y), 40).is_empty());
+        assert!(g.feed(Up(Select), 60).is_empty());
+    }
+}
+
+#[test]
+fn select_and_y_is_the_games_where_there_is_nothing_to_toggle() {
+    for keys in [PS1, SNES] {
+        let mut g = with_keys(Keys {
+            picture: false,
+            ..keys
+        });
         assert!(g.feed(Down(Select), 0).is_empty());
         assert_eq!(g.feed(Down(Y), 10), vec![GbaDown(Select), GbaDown(Y)]);
         assert_eq!(g.feed(Up(Y), 40), vec![GbaUp(Y)]);
@@ -686,5 +702,25 @@ fn new_keys_let_go_of_a_rewind_and_a_fast_forward_under_way() {
         g.feed(Down(R2), 2_000),
         vec![FfStart],
         "R2 stayed held as the chord it was"
+    );
+}
+
+#[test]
+fn select_and_x_steps_the_screen_look_on_every_system() {
+    for keys in [Keys::HANDHELD, PS1, SNES] {
+        let mut g = with_keys(keys);
+        assert!(g.feed(Down(Select), 0).is_empty());
+        assert_eq!(g.feed(Down(X), 10), vec![ShaderNext]);
+        assert!(
+            g.feed(Up(X), 40).is_empty(),
+            "the chord's X reached the game"
+        );
+        assert!(g.feed(Up(Select), 60).is_empty());
+    }
+    let mut g = Gestures::new();
+    assert_eq!(
+        g.feed(Down(X), 0),
+        vec![GbaDown(X)],
+        "X alone is the game's"
     );
 }

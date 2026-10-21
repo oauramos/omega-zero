@@ -23,6 +23,59 @@ pub enum Filter {
     Sharp,
 }
 
+/// A look laid over the game's picture as it is drawn, whatever its filter: none, the
+/// handhelds' LCD stripes, pixel grid or round dots, or a television's scanlines or CRT.
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
+pub enum Look {
+    #[default]
+    Off,
+    Lcd,
+    Grid,
+    Dot,
+    Scanlines,
+    Crt,
+}
+
+impl Look {
+    pub const ALL: [Look; 6] = [
+        Look::Off,
+        Look::Lcd,
+        Look::Grid,
+        Look::Dot,
+        Look::Scanlines,
+        Look::Crt,
+    ];
+
+    /// The look's number in the look shader's `u_mode`.
+    fn mode(self) -> f32 {
+        match self {
+            Look::Off => 0.0,
+            Look::Lcd => 1.0,
+            Look::Grid => 2.0,
+            Look::Dot => 3.0,
+            Look::Scanlines => 4.0,
+            Look::Crt => 5.0,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Look::Off => "off",
+            Look::Lcd => "lcd",
+            Look::Grid => "grid",
+            Look::Dot => "dot",
+            Look::Scanlines => "scanlines",
+            Look::Crt => "crt",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Look> {
+        Look::ALL
+            .into_iter()
+            .find(|l| s.trim().eq_ignore_ascii_case(l.as_str()))
+    }
+}
+
 /// How the game is laid on the canvas: the part of the game texture shown, the rect it fills
 /// with the screen on, and how it is scaled into it.
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -64,9 +117,17 @@ struct Sharp {
     u_src: gl::types::GLint,
 }
 
+/// The look shader's program and uniforms: the sharp view's, and the look.
+struct LookPass {
+    sharp: Sharp,
+    u_mode: gl::types::GLint,
+}
+
 pub struct GamePass {
     lcd: Lcd,
     sharp: Sharp,
+    looks: LookPass,
+    look: Look,
     game: gl::types::GLuint,
     /// The game texture's width and height, the last picture's.
     size: (u32, u32),
@@ -84,6 +145,7 @@ impl GamePass {
     pub fn new() -> Result<Self, GfxError> {
         let lcd = crate::shaders::program(RECT_VERT, GAME_FRAG)?;
         let sharp = crate::shaders::program(RECT_VERT, GAME_SHARP_FRAG)?;
+        let looks = crate::shaders::program(RECT_VERT, crate::shaders::GAME_LOOK_FRAG)?;
         let game = crate::gl::texture(SRC_W, SRC_H, gl::NEAREST, gl::CLAMP_TO_EDGE, gl::BGRA, None);
         let mask = crate::gl::texture(
             3,
@@ -101,6 +163,9 @@ impl GamePass {
             gl::UseProgram(sharp);
             gl::Uniform1i(uniform(sharp, "u_game"), 0);
             gl::Uniform2f(uniform(sharp, "u_target"), out_w() as f32, out_h() as f32);
+            gl::UseProgram(looks);
+            gl::Uniform1i(uniform(looks, "u_game"), 0);
+            gl::Uniform2f(uniform(looks, "u_target"), out_w() as f32, out_h() as f32);
         }
         Ok(GamePass {
             lcd: Lcd {
@@ -120,6 +185,19 @@ impl GamePass {
                 u_scale: uniform(sharp, "u_scale"),
                 u_src: uniform(sharp, "u_src"),
             },
+            looks: LookPass {
+                sharp: Sharp {
+                    prog: looks,
+                    u_rect: uniform(looks, "u_rect"),
+                    u_bright: uniform(looks, "u_bright"),
+                    u_glow: uniform(looks, "u_glow"),
+                    u_uv: uniform(looks, "u_uv"),
+                    u_scale: uniform(looks, "u_scale"),
+                    u_src: uniform(looks, "u_src"),
+                },
+                u_mode: uniform(looks, "u_mode"),
+            },
+            look: Look::Off,
             game,
             size: (SRC_W, SRC_H),
             mask,
@@ -127,6 +205,11 @@ impl GamePass {
             view: None,
             still: None,
         })
+    }
+
+    /// The look the game's picture, and a still of it, is drawn through.
+    pub fn set_look(&mut self, look: Look) {
+        self.look = look;
     }
 
     pub fn set_power(&mut self, t: f32) {
@@ -216,7 +299,21 @@ impl GamePass {
         let (src_w, src_h) = (src.0 as f32, src.1 as f32);
         let (x, y, w, h) = screen_rect_in(self.power, view.rect);
         let uv = view.uv;
-        match view.filter {
+        let sampled = if self.look == Look::Off {
+            view.filter
+        } else {
+            Filter::Sharp
+        };
+        let sharp = if self.look == Look::Off {
+            &self.sharp
+        } else {
+            unsafe {
+                gl::UseProgram(self.looks.sharp.prog);
+                gl::Uniform1f(self.looks.u_mode, self.look.mode());
+            }
+            &self.looks.sharp
+        };
+        match sampled {
             Filter::Lcd3x => unsafe {
                 gl::UseProgram(self.lcd.prog);
                 gl::Uniform4f(self.lcd.u_rect, x, y, w, h);
@@ -235,24 +332,24 @@ impl GamePass {
                 gl::ActiveTexture(gl::TEXTURE0);
             },
             Filter::Sharp => unsafe {
-                gl::UseProgram(self.sharp.prog);
-                gl::Uniform4f(self.sharp.u_rect, x, y, w, h);
-                gl::Uniform4f(self.sharp.u_uv, uv[0], uv[1], uv[2], uv[3]);
-                gl::Uniform2f(self.sharp.u_src, src_w, src_h);
+                gl::UseProgram(sharp.prog);
+                gl::Uniform4f(sharp.u_rect, x, y, w, h);
+                gl::Uniform4f(sharp.u_uv, uv[0], uv[1], uv[2], uv[3]);
+                gl::Uniform2f(sharp.u_src, src_w, src_h);
                 gl::Uniform2f(
-                    self.sharp.u_scale,
+                    sharp.u_scale,
                     view.rect[2] / (uv[2] * src_w),
                     view.rect[3] / (uv[3] * src_h),
                 );
-                gl::Uniform1f(self.sharp.u_bright, screen_brightness(self.power));
-                gl::Uniform1f(self.sharp.u_glow, screen_glow(self.power));
+                gl::Uniform1f(sharp.u_bright, screen_brightness(self.power));
+                gl::Uniform1f(sharp.u_glow, screen_glow(self.power));
                 gl::ActiveTexture(gl::TEXTURE0);
                 gl::BindTexture(gl::TEXTURE_2D, tex);
                 filter(gl::LINEAR);
             },
         }
         quad.draw();
-        if view.filter == Filter::Sharp {
+        if sampled == Filter::Sharp {
             unsafe { filter(gl::NEAREST) };
         }
     }
@@ -272,6 +369,7 @@ impl Drop for GamePass {
             gl::DeleteTextures(1, &self.mask);
             gl::DeleteProgram(self.lcd.prog);
             gl::DeleteProgram(self.sharp.prog);
+            gl::DeleteProgram(self.looks.sharp.prog);
         }
     }
 }

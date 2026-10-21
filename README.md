@@ -46,7 +46,11 @@ is the most useful thing you can send.
 - Five cores: mGBA and gpSP for the GBA and Snes9x and Supafaust for the SNES, chosen per cart;
   mGBA for the Game Boys; PCSX ReARMed for the PlayStation, with a BIOS of its own built in. GBA
   fills a 640x480 screen and the PlayStation fills it at 4:3; the SNES is drawn at twice its size,
-  and Game Boy stays at 3x.
+  and Game Boy stays at 3x. On the SNES and the PlayStation SELECT+Y goes round integer, 4:3 and
+  stretched.
+- Screen looks on SELECT+X, kept per system: LCD, grid and dot for the Game Boys and the GBA,
+  ported from slot's, and scanlines and CRT for the SNES and the PlayStation. The picture size is
+  kept per system too.
 - A PlayStation game on several discs is one game: DISC, on SELECT+MENU in a game, puts another
   disc in, and the game resumes with the disc that was in the drive.
 - Resume on boot, save states with a switcher, rewind (not on the PlayStation), fast-forward,

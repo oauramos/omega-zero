@@ -323,6 +323,7 @@ impl Frontend {
         };
         let screen = crate::video_mode::screen_for(platform, self.session.app().video_mode, size);
         compositor.set_game_view(screen.view);
+        compositor.set_game_look(self.session.app().look());
         compositor.set_still_view(screen.still);
         let picture = crate::video_mode::picture_rect(platform, screen.view);
         let overlay = self.overlay(platform, picture, compositor);
