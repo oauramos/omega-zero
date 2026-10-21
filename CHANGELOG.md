@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- PlayStation labels whose discs ScreenScraper numbers are fetched again. Their names carry the
+  disc's number in brackets, `support-texture(us)[1]`, which curl read as a range and refused, so
+  the sync counted them as having no scan.
+
 ## omega-zero 1.2.0
 
 Supafaust runs SNES games, a game that takes the console down can no longer trap it at boot, and

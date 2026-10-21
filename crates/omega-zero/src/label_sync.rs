@@ -714,21 +714,28 @@ pub trait Http {
 /// over on stdin rather than where `ps` would show it.
 pub struct Curl;
 
+/// What curl is run with: quietly, following redirects, for a minute at most, the status after
+/// the body, and the URL read from stdin. Globbing is off: ScreenScraper names a disc's media
+/// with its number in brackets, `support-texture(us)[1]`, which curl would otherwise read as a
+/// range and refuse before asking anything.
+pub const CURL_ARGS: [&str; 11] = [
+    "-s",
+    "-g",
+    "-L",
+    "-m",
+    "60",
+    "-A",
+    SOFTNAME,
+    "-w",
+    "\n%{http_code}",
+    "-K",
+    "-",
+];
+
 impl Http for Curl {
     fn get(&mut self, url: &str) -> Option<(u16, Vec<u8>)> {
         let mut child = Command::new("curl")
-            .args([
-                "-s",
-                "-L",
-                "-m",
-                "60",
-                "-A",
-                SOFTNAME,
-                "-w",
-                "\n%{http_code}",
-                "-K",
-                "-",
-            ])
+            .args(CURL_ARGS)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())

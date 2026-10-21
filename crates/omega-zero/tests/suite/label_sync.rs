@@ -8,8 +8,8 @@ use omega_store::{Cart, Platform};
 use omega_zero::json::Json;
 use omega_zero::label_sync::{
     crc32, fetch_width, game_url, label_regions, lookups, media_url, pick_label, pick_media,
-    read_reply, regions, sync, title, wants, Account, Found, Http, LabelNews, Lookup, Media, Quota,
-    Reply, Sync, SyncFail, Tally, Want, Who,
+    read_reply, regions, sync, title, wants, Account, Curl, Found, Http, LabelNews, Lookup, Media,
+    Quota, Reply, Sync, SyncFail, Tally, Want, Who,
 };
 
 #[test]
@@ -964,4 +964,54 @@ fn a_disc_no_way_of_asking_finds_is_not_on_screenscraper() {
             ..Tally::default()
         }))
     );
+}
+
+/// Serves one request on a port of its own, answering it 200 with `body`, and hands back the
+/// port and the request's first line.
+fn serve_once(body: &'static [u8]) -> (u16, std::thread::JoinHandle<String>) {
+    use std::io::{BufRead, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let server = std::thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut reader = std::io::BufReader::new(stream.try_clone().unwrap());
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+        let mut rest = String::new();
+        while reader.read_line(&mut rest).is_ok_and(|n| n > 2) {
+            rest.clear();
+        }
+        let mut stream = stream;
+        write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        )
+        .unwrap();
+        stream.write_all(body).unwrap();
+        line
+    });
+    (port, server)
+}
+
+#[test]
+fn curl_fetches_a_disc_s_media_whose_name_carries_its_number_in_brackets() {
+    if std::process::Command::new("curl")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("no curl on this host, skipping");
+        return;
+    }
+    let (port, server) = serve_once(b"PNG");
+    let url = format!(
+        "http://127.0.0.1:{port}/api2/mediaJeu.php?jeuid=19252&media=support-texture(us)[1]&maxwidth=432"
+    );
+    assert_eq!(
+        Curl.get(&url),
+        Some((200, b"PNG".to_vec())),
+        "curl read the disc's number as a range and asked nothing"
+    );
+    assert!(server.join().unwrap().contains("support-texture(us)[1]"));
 }
