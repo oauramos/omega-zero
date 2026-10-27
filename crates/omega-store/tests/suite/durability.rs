@@ -3,7 +3,7 @@ use crate::common;
 use common::tmp_root;
 use omega_store::{
     atomic_write, read_app_state, write_app_state, AppState, BackdropStyle, Font, Platform,
-    BACKDROP_COLOURS, FF_SPEEDS, FF_SPEED_DEFAULT,
+    ScreenFilter, BACKDROP_COLOURS, FF_SPEEDS, FF_SPEED_DEFAULT,
 };
 use tempfile::tempdir;
 
@@ -169,6 +169,11 @@ fn a_first_boot_rumbles_and_fast_forwards_silently_at_the_default() {
     assert_eq!(s.ff_speed, FF_SPEED_DEFAULT);
     assert!(!s.ff_sound, "boots with fast forward audible");
     assert!(!s.colour_correction, "boots with the picture tinted");
+    assert_eq!(
+        s.screen_filter,
+        ScreenFilter::Lcd,
+        "boots without the LCD mask"
+    );
     assert!(!s.wifi, "boots with the radio on");
 }
 
@@ -197,6 +202,7 @@ fn a_card_from_before_the_settings_keeps_all_its_values() {
             ff_speed: FF_SPEED_DEFAULT,
             ff_sound: false,
             colour_correction: false,
+            screen_filter: ScreenFilter::Lcd,
             wifi: false,
             ssh: true,
             bluetooth: false,
@@ -217,6 +223,7 @@ fn the_quick_menu_settings_round_trip_as_their_own_lines() {
         ff_speed: 2,
         ff_sound: true,
         colour_correction: true,
+        screen_filter: ScreenFilter::Sharp,
         wifi: true,
         ..AppState::default()
     };
@@ -228,6 +235,7 @@ fn the_quick_menu_settings_round_trip_as_their_own_lines() {
         "ff_speed=2",
         "ff_sound=1",
         "colour_correction=1",
+        "screen_filter=sharp",
         "wifi=1",
     ] {
         assert!(text.lines().any(|l| l == line), "no {line} in {text:?}");
@@ -278,6 +286,10 @@ fn an_out_of_range_setting_falls_back_to_its_default() {
         "colour_correction=2\n",
         "colour_correction=\n",
         "colour_correction=Auto\n",
+        "screen_filter=\n",
+        "screen_filter=1\n",
+        "screen_filter=Sharp\n",
+        "screen_filter=crt\n",
         "wifi=2\n",
         "wifi=on\n",
         "ff_speed=5\n",
@@ -297,9 +309,17 @@ fn an_out_of_range_setting_falls_back_to_its_default() {
                 s.ff_speed,
                 s.ff_sound,
                 s.colour_correction,
+                s.screen_filter,
                 s.wifi
             ),
-            (true, FF_SPEED_DEFAULT, false, false, false),
+            (
+                true,
+                FF_SPEED_DEFAULT,
+                false,
+                false,
+                ScreenFilter::Lcd,
+                false
+            ),
             "accepted {bad:?}"
         );
         assert_eq!(

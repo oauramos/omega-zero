@@ -2,7 +2,7 @@
 //! right change in place, and GENERAL, whose rows open a screen of their own.
 
 use omega_input::{Action, Btn};
-use omega_store::FF_SPEEDS;
+use omega_store::{ScreenFilter, FF_SPEEDS};
 use omega_ui::{date_time_text, Draw, QuickValue, RowShown, SettingsFaces, SettingsMenu};
 
 pub use omega_ui::{SettingsGroup, SettingsRow};
@@ -30,6 +30,10 @@ impl App {
             SettingsRow::FastForward => QuickValue::speed(self.state.ff_speed),
             SettingsRow::FastForwardSound => Some(QuickValue::flag(self.state.ff_sound)),
             SettingsRow::ColourCorrection => Some(QuickValue::flag(self.state.colour_correction)),
+            SettingsRow::ScreenFilter => Some(match self.state.screen_filter {
+                ScreenFilter::Lcd => QuickValue::Lcd,
+                ScreenFilter::Sharp => QuickValue::Sharp,
+            }),
             SettingsRow::Rumble => Some(QuickValue::flag(self.state.rumble)),
             SettingsRow::Labels
             | SettingsRow::DateTime
@@ -131,6 +135,7 @@ impl App {
             SettingsRow::FastForward
             | SettingsRow::FastForwardSound
             | SettingsRow::ColourCorrection
+            | SettingsRow::ScreenFilter
             | SettingsRow::Rumble => return,
         };
         self.go(to, Dir::Deeper);
@@ -150,6 +155,12 @@ impl App {
             SettingsRow::ColourCorrection => {
                 s.colour_correction = !s.colour_correction;
                 self.colour_pending = Some(s.colour_correction);
+            }
+            SettingsRow::ScreenFilter => {
+                s.screen_filter = match s.screen_filter {
+                    ScreenFilter::Lcd => ScreenFilter::Sharp,
+                    ScreenFilter::Sharp => ScreenFilter::Lcd,
+                }
             }
             SettingsRow::Rumble => s.rumble = !s.rumble,
             SettingsRow::Labels

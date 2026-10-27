@@ -516,7 +516,7 @@ fn a_volume_press_during_a_slide_leaves_it_sliding() {
 /// Settings' faces as fake textures: its modal is 100.
 fn fake_settings_faces(a: &mut App) {
     let id = TexId::from_raw;
-    let frame = settings_frame(5, palette(0));
+    let frame = settings_frame(omega_ui::configs_in(&SettingsRow::ALL), palette(0));
     let titles = [(id(110), [42, 11]), (id(111), [42, 11])];
     a.set_settings_faces(SettingsFaces::new(&frame, id(100), titles));
 }

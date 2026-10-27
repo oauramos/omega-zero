@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use omega_gfx::{canvas, Canvas, Filter, GameView, SCALE, SRC_H, SRC_W, WHOLE_TEXTURE};
-use omega_store::{ini, Platform};
+use omega_store::{ini, Platform, ScreenFilter};
 
 pub const VIDEO_MODE_FILE: &str = "Config/video_mode.ini";
 
@@ -159,6 +159,16 @@ pub fn screen_on_frame(
             }
         }
     }
+}
+
+/// `screen` as Settings' Screen Filter draws it: SHARP takes every picture through the sharp
+/// filter, the ones through the LCD mask too; LCD leaves it as it is.
+pub fn filtered(mut screen: Screen, filter: ScreenFilter) -> Screen {
+    if filter == ScreenFilter::Sharp {
+        screen.view.filter = Filter::Sharp;
+        screen.still.filter = Filter::Sharp;
+    }
+    screen
 }
 
 fn lcd(rect: [f32; 4], uv: [f32; 4]) -> GameView {

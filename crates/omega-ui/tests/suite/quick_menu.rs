@@ -7,9 +7,9 @@ use omega_ui::kit::modal::{modal_face, CUT};
 use omega_ui::kit::palette::{palette, Palette};
 use omega_ui::kit::row::ROW_H;
 use omega_ui::{
-    date_time_text, settings_frame, settings_panels, settings_row_face, settings_row_rects,
-    settings_row_width, settings_title_face, ClockPicker, QuickValue, RowShown, SettingsBaked,
-    SettingsGroup, SettingsRow, UndoFace,
+    configs_in, date_time_text, settings_frame, settings_panels, settings_row_face,
+    settings_row_rects, settings_row_width, settings_title_face, ClockPicker, QuickValue, RowShown,
+    SettingsBaked, SettingsGroup, SettingsRow, UndoFace,
 };
 
 const NIGHT: u8 = 0;
@@ -26,6 +26,7 @@ fn flow_rows(lit: SettingsRow) -> Vec<RowShown> {
     let value = |row| match row {
         SettingsRow::FastForward => Some("6X"),
         SettingsRow::FastForwardSound | SettingsRow::ColourCorrection => Some("OFF"),
+        SettingsRow::ScreenFilter => Some("LCD"),
         SettingsRow::Rumble => Some("ON"),
         SettingsRow::DateTime => Some("OCT 10 16:00"),
         SettingsRow::Network => Some("HOME"),
@@ -137,7 +138,7 @@ fn configs_is_as_tall_as_its_rows_and_general_takes_the_rest() {
 
 #[test]
 fn every_row_stands_in_its_own_panels_well() {
-    let frame = settings_frame(5, palette(NIGHT));
+    let frame = settings_frame(configs_in(&SettingsRow::ALL), palette(NIGHT));
     let rects = settings_row_rects(&SettingsRow::ALL, frame.wells);
     for (row, [x, y, w, h]) in &rects {
         let [wx, wy, ww, wh] = frame.wells[row.group().index()];
@@ -169,7 +170,7 @@ fn without_a_radio_the_rows_after_network_close_up_and_the_panels_stay() {
         .filter(|r| *r != SettingsRow::Network)
         .collect();
     let frame = settings_frame(omega_ui::configs_in(&rows), palette(NIGHT));
-    let all = settings_frame(5, palette(NIGHT));
+    let all = settings_frame(configs_in(&SettingsRow::ALL), palette(NIGHT));
     assert_eq!(frame.wells, all.wells, "hiding Network moved a panel");
     let rects = settings_row_rects(&rows, frame.wells);
     let y = |row: SettingsRow| rects.iter().find(|(r, _)| *r == row).unwrap().1[1];
@@ -185,7 +186,7 @@ fn without_a_radio_the_rows_after_network_close_up_and_the_panels_stay() {
 #[test]
 fn the_frame_is_the_modal_with_both_titles_dim() {
     let pal = palette(NIGHT);
-    let frame = settings_frame(5, pal);
+    let frame = settings_frame(configs_in(&SettingsRow::ALL), pal);
     let [_, _, mw, mh] = modal_rect();
     assert_eq!((frame.face.w, frame.face.h), (mw, mh));
     // the frame's corners and edges are the modal's own
@@ -287,6 +288,7 @@ fn the_rows_left_and_right_change_step_between_arrows_and_the_rows_that_open_end
             SettingsRow::FastForward,
             SettingsRow::FastForwardSound,
             SettingsRow::ColourCorrection,
+            SettingsRow::ScreenFilter,
             SettingsRow::Rumble
         ]
     );
@@ -324,8 +326,8 @@ const FLOW_REFS: [(&str, u8, SettingsRow); 5] = [
     ("640x480-night-0", NIGHT, SettingsRow::FastForward),
     ("720x480-night-0", NIGHT, SettingsRow::FastForward),
     ("720x720-night-0", NIGHT, SettingsRow::FastForward),
-    ("640x480-amber-5", AMBER, SettingsRow::DateTime),
-    ("720x480-amber-5", AMBER, SettingsRow::DateTime),
+    ("640x480-amber-6", AMBER, SettingsRow::DateTime),
+    ("720x480-amber-6", AMBER, SettingsRow::DateTime),
 ];
 
 #[test]
@@ -420,7 +422,7 @@ fn the_palette_tints_every_face() {
     let rows = flow_rows(SettingsRow::FastForward);
     for colour in [NIGHT, AMBER] {
         let pal = palette(colour);
-        let frame = settings_frame(5, pal);
+        let frame = settings_frame(configs_in(&SettingsRow::ALL), pal);
         assert_eq!(px(&frame.face, 3, 0), Some(pal.dark), "colour {colour}");
         assert_eq!(px(&frame.face, 3, 40), Some(pal.frame), "colour {colour}");
         let lit = settings_row_face(settings_row_width(268), &rows[0], pal);
@@ -461,6 +463,7 @@ fn the_rows_run_in_the_order_the_user_chose() {
             "Fast Forward",
             "Fast Forward Sound",
             "Colour Correction",
+            "Screen Filter",
             "Rumble",
             "Labels",
             "Date & Time",
@@ -491,7 +494,7 @@ fn the_configs_come_first_and_the_handheld_itself_after() {
         .iter()
         .take_while(|g| **g == SettingsGroup::Configs)
         .count();
-    assert_eq!(configs, 5, "{groups:?}");
+    assert_eq!(configs, 6, "{groups:?}");
     assert!(
         groups[configs..]
             .iter()
@@ -525,7 +528,7 @@ fn a_hidden_row_is_stepped_over_both_ways() {
 fn the_values_read_as_flow_prints_them() {
     assert_eq!(
         QuickValue::ALL.map(QuickValue::text),
-        ["2X", "3X", "4X", "6X", "ON", "OFF"]
+        ["2X", "3X", "4X", "6X", "ON", "OFF", "LCD", "SHARP"]
     );
     assert_eq!(QuickValue::flag(true), QuickValue::On);
     assert_eq!(QuickValue::flag(false), QuickValue::Off);

@@ -7,7 +7,8 @@ use omega_power::{Battery, Charge, LedState, LidPolicy, Power};
 use omega_retro::LinkChannel;
 use omega_store::{
     format_stamp, read_app_state, scan, write_app_state, AppState, BackdropStyle, Cart, Core,
-    Platform, StateEntry, StateRing, Theme, BLUE_LIGHT_MAX, BRIGHTNESS_MAX, VOLUME_MAX,
+    Platform, ScreenFilter, StateEntry, StateRing, Theme, BLUE_LIGHT_MAX, BRIGHTNESS_MAX,
+    VOLUME_MAX,
 };
 use omega_ui::kit::action::Font;
 use omega_ui::kit::fade::stepped;
@@ -837,7 +838,16 @@ impl App {
     }
 
     pub fn screen(&self) -> video_mode::Screen {
-        video_mode::screen(self.platform, self.video_mode)
+        self.screen_for(self.platform.picture())
+    }
+
+    /// The screen for the game, its last picture `frame` pixels wide and high, through the
+    /// Screen Filter Settings has.
+    pub fn screen_for(&self, frame: (u32, u32)) -> video_mode::Screen {
+        video_mode::filtered(
+            video_mode::screen_for(self.platform, self.video_mode, frame),
+            self.state.screen_filter,
+        )
     }
 
     /// The system of the cart in the handheld, or of the last one there.
@@ -1027,6 +1037,10 @@ impl App {
 
     pub fn colour_correction(&self) -> bool {
         self.state.colour_correction
+    }
+
+    pub fn screen_filter(&self) -> ScreenFilter {
+        self.state.screen_filter
     }
 
     pub fn powering_off(&self) -> bool {

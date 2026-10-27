@@ -57,6 +57,8 @@ pub enum SettingsRow {
     FastForward,
     FastForwardSound,
     ColourCorrection,
+    /// How the game's picture is drawn: through the LCD mask, or sharp.
+    ScreenFilter,
     Rumble,
     Labels,
     DateTime,
@@ -69,10 +71,11 @@ pub enum SettingsRow {
 }
 
 impl SettingsRow {
-    pub const ALL: [SettingsRow; 10] = [
+    pub const ALL: [SettingsRow; 11] = [
         SettingsRow::FastForward,
         SettingsRow::FastForwardSound,
         SettingsRow::ColourCorrection,
+        SettingsRow::ScreenFilter,
         SettingsRow::Rumble,
         SettingsRow::Labels,
         SettingsRow::DateTime,
@@ -91,6 +94,7 @@ impl SettingsRow {
             SettingsRow::FastForward => "Fast Forward",
             SettingsRow::FastForwardSound => "Fast Forward Sound",
             SettingsRow::ColourCorrection => "Colour Correction",
+            SettingsRow::ScreenFilter => "Screen Filter",
             SettingsRow::Rumble => "Rumble",
             SettingsRow::Labels => "Labels",
             SettingsRow::DateTime => "Date & Time",
@@ -106,6 +110,7 @@ impl SettingsRow {
             SettingsRow::FastForward
             | SettingsRow::FastForwardSound
             | SettingsRow::ColourCorrection
+            | SettingsRow::ScreenFilter
             | SettingsRow::Rumble
             | SettingsRow::Labels => SettingsGroup::Configs,
             SettingsRow::DateTime
@@ -138,6 +143,7 @@ impl SettingsRow {
             SettingsRow::FastForward
                 | SettingsRow::FastForwardSound
                 | SettingsRow::ColourCorrection
+                | SettingsRow::ScreenFilter
                 | SettingsRow::Rumble
         )
     }
@@ -172,16 +178,20 @@ pub enum QuickValue {
     Speed6,
     On,
     Off,
+    Lcd,
+    Sharp,
 }
 
 impl QuickValue {
-    pub const ALL: [QuickValue; 6] = [
+    pub const ALL: [QuickValue; 8] = [
         QuickValue::Speed2,
         QuickValue::Speed3,
         QuickValue::Speed4,
         QuickValue::Speed6,
         QuickValue::On,
         QuickValue::Off,
+        QuickValue::Lcd,
+        QuickValue::Sharp,
     ];
 
     pub fn index(self) -> usize {
@@ -197,6 +207,8 @@ impl QuickValue {
             QuickValue::Speed6 => "6X",
             QuickValue::On => "ON",
             QuickValue::Off => "OFF",
+            QuickValue::Lcd => "LCD",
+            QuickValue::Sharp => "SHARP",
         }
     }
 

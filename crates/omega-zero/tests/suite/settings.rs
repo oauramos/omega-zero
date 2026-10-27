@@ -6,8 +6,9 @@ use common::{
 };
 use std::sync::{Arc, Mutex};
 
+use omega_gfx::Filter;
 use omega_input::{Action, Btn};
-use omega_store::{read_app_state, write_app_state, AppState};
+use omega_store::{read_app_state, write_app_state, AppState, ScreenFilter};
 use omega_ui::kit::layout::modal_rect;
 use omega_ui::kit::palette::palette;
 use omega_ui::kit::row::ROW_H;
@@ -16,6 +17,7 @@ use omega_ui::{
     SettingsFaces, SettingsGroup, SettingsRow, TexId, SPRITE_PX,
 };
 use omega_zero::app::{App, Phase};
+use omega_zero::video_mode::{self, VideoMode};
 use omega_zero::wifi::{Status, WifiJob, WifiJobs, WifiNews};
 use omega_zero::wifi_screen::Summary;
 use tempfile::TempDir;
@@ -138,6 +140,7 @@ fn up_and_down_move_the_bar_and_wrap_at_the_ends() {
         SettingsRow::FastForward,
         SettingsRow::FastForwardSound,
         SettingsRow::ColourCorrection,
+        SettingsRow::ScreenFilter,
         SettingsRow::Rumble,
         SettingsRow::Labels,
         SettingsRow::DateTime,
@@ -195,6 +198,7 @@ fn rumble_and_fast_forward_sound_flip_on_either_arrow_and_save() {
     assert_eq!(card(&d), (false, true));
     press(&mut a, Btn::Down);
     press(&mut a, Btn::Down);
+    press(&mut a, Btn::Down);
     press(&mut a, Btn::Right);
     assert_eq!(card(&d), (false, false));
     assert!(!a.rumble_enabled());
@@ -247,6 +251,56 @@ fn colour_correction_leaves_the_settings_around_it_alone() {
         (
             AppState::default().ff_speed,
             AppState::default().ff_sound,
+            AppState::default().rumble
+        ),
+        "the row reached a setting that is not its own"
+    );
+}
+
+#[test]
+fn screen_filter_flips_on_either_arrow_saves_and_takes_the_picture_off_the_mask() {
+    let (d, mut a, _) = on_carousel();
+    open_at(&mut a, SettingsRow::ScreenFilter);
+    let lcd = video_mode::screen(a.platform(), VideoMode::Actual);
+    assert_eq!(
+        a.screen_filter(),
+        ScreenFilter::Lcd,
+        "the row did not open on the default, which is the LCD mask"
+    );
+    assert_eq!(
+        a.settings_value(SettingsRow::ScreenFilter),
+        Some(QuickValue::Lcd)
+    );
+    assert_eq!(a.screen(), lcd, "LCD changed the picture");
+    for (btn, want) in [
+        (Btn::Right, ScreenFilter::Sharp),
+        (Btn::Left, ScreenFilter::Lcd),
+        (Btn::Left, ScreenFilter::Sharp),
+        (Btn::Right, ScreenFilter::Lcd),
+        (Btn::Right, ScreenFilter::Sharp),
+    ] {
+        press(&mut a, btn);
+        assert_eq!(a.screen_filter(), want, "{btn:?}");
+        assert_eq!(
+            read_app_state(d.path()).screen_filter,
+            want,
+            "{btn:?} never reached the card"
+        );
+        let (value, filter) = match want {
+            ScreenFilter::Lcd => (QuickValue::Lcd, lcd.view.filter),
+            ScreenFilter::Sharp => (QuickValue::Sharp, Filter::Sharp),
+        };
+        assert_eq!(a.settings_value(SettingsRow::ScreenFilter), Some(value));
+        assert_eq!(a.screen().view.filter, filter, "{btn:?}");
+        assert_eq!(a.screen().still.filter, filter, "{btn:?} still");
+    }
+    let s = read_app_state(d.path());
+    assert_eq!(
+        (s.ff_speed, s.ff_sound, s.colour_correction, s.rumble),
+        (
+            AppState::default().ff_speed,
+            AppState::default().ff_sound,
+            AppState::default().colour_correction,
             AppState::default().rumble
         ),
         "the row reached a setting that is not its own"
@@ -405,7 +459,7 @@ fn brightness_and_volume_still_answer_over_settings() {
 /// and 111, and each row 200 and its index.
 fn fake_faces(a: &mut App) -> SettingsFaces {
     let id = TexId::from_raw;
-    let frame = settings_frame(5, palette(0));
+    let frame = settings_frame(omega_ui::configs_in(&SettingsRow::ALL), palette(0));
     let mut faces = SettingsFaces::new(&frame, id(100), [(id(110), [42, 11]), (id(111), [42, 11])]);
     for row in a.settings_rows() {
         faces.rows[row.index()] = Some((id(200 + row.index()), [270, ROW_H]));
@@ -532,6 +586,7 @@ fn the_rows_say_what_is_set_in_flows_capitals() {
             text("4X"),
             text("ON"),
             text("OFF"),
+            text("LCD"),
             text("ON"),
             None,
             clock_text,

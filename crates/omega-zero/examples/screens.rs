@@ -89,6 +89,8 @@ tap down
 wait 10
 tap down
 wait 10
+tap down
+wait 10
 tap a
 settle
 wait 30
@@ -132,6 +134,8 @@ settle
 shot shelf-thin
 tap start
 wait 60
+tap down
+wait 10
 tap down
 wait 10
 tap down
