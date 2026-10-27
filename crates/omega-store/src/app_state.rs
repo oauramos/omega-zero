@@ -4,6 +4,7 @@ use crate::atomic::atomic_write;
 use crate::backdrop::{colour_index, BackdropStyle, BACKDROP_COLOURS};
 use crate::font::Font;
 use crate::platform::Platform;
+use crate::screen_filter::ScreenFilter;
 
 pub const BRIGHTNESS_MAX: u8 = 9;
 pub const BLUE_LIGHT_MAX: u8 = 9;
@@ -32,6 +33,8 @@ pub struct AppState {
     pub ff_speed: u8,
     pub ff_sound: bool,
     pub colour_correction: bool,
+    /// How the game's picture is drawn: through the LCD mask where it fits, or sharp.
+    pub screen_filter: ScreenFilter,
     /// Home Wi-Fi is switched on.
     pub wifi: bool,
     /// SSH is switched on: BaseOS's dev images start its server at boot, and it is left
@@ -68,6 +71,7 @@ impl Default for AppState {
             ff_speed: FF_SPEED_DEFAULT,
             ff_sound: false,
             colour_correction: false,
+            screen_filter: ScreenFilter::Lcd,
             wifi: false,
             ssh: true,
             bluetooth: false,
@@ -93,7 +97,7 @@ pub fn read_app_state(root: &Path) -> AppState {
 
 pub fn write_app_state(root: &Path, s: &AppState) -> std::io::Result<()> {
     let text = format!(
-        "cart={}\ncart_platform={}\nbrightness={}\nblue_light={}\nvolume={}\nvolume_hp={}\nmuted={}\nmuted_hp={}\nclock_set={}\nutc_offset_min={}\nrumble={}\nff_speed={}\nff_sound={}\ncolour_correction={}\nwifi={}\nssh={}\nbluetooth={}\nbackdrop={}\nbackdrop_moving={}\nbackdrop_colour={}\nfont={}\n",
+        "cart={}\ncart_platform={}\nbrightness={}\nblue_light={}\nvolume={}\nvolume_hp={}\nmuted={}\nmuted_hp={}\nclock_set={}\nutc_offset_min={}\nrumble={}\nff_speed={}\nff_sound={}\ncolour_correction={}\nscreen_filter={}\nwifi={}\nssh={}\nbluetooth={}\nbackdrop={}\nbackdrop_moving={}\nbackdrop_colour={}\nfont={}\n",
         s.cart.as_deref().unwrap_or(""),
         s.cart_platform.map_or(String::new(), platform_key),
         s.brightness,
@@ -108,6 +112,7 @@ pub fn write_app_state(root: &Path, s: &AppState) -> std::io::Result<()> {
         s.ff_speed,
         s.ff_sound as u8,
         s.colour_correction as u8,
+        s.screen_filter.key(),
         s.wifi as u8,
         if s.ssh { "on" } else { "off" },
         if s.bluetooth { "on" } else { "off" },
@@ -134,6 +139,7 @@ fn parse(text: &str) -> Option<AppState> {
     let mut ff_speed = None;
     let mut ff_sound = None;
     let mut colour_correction = None;
+    let mut screen_filter = None;
     let mut wifi = None;
     let mut ssh = None;
     let mut bluetooth = None;
@@ -160,6 +166,7 @@ fn parse(text: &str) -> Option<AppState> {
             "ff_speed" => ff_speed = ff_speed_value(value),
             "ff_sound" => ff_sound = flag(value),
             "colour_correction" => colour_correction = flag(value),
+            "screen_filter" => screen_filter = ScreenFilter::from_key(value),
             "wifi" => wifi = flag(value),
             "ssh" => ssh = on_off(value),
             "bluetooth" => bluetooth = on_off(value),
@@ -187,6 +194,7 @@ fn parse(text: &str) -> Option<AppState> {
         ff_speed: ff_speed.unwrap_or(fallback.ff_speed),
         ff_sound: ff_sound.unwrap_or(fallback.ff_sound),
         colour_correction: colour_correction.unwrap_or(fallback.colour_correction),
+        screen_filter: screen_filter.unwrap_or(fallback.screen_filter),
         wifi: wifi.unwrap_or(fallback.wifi),
         ssh: ssh.unwrap_or(fallback.ssh),
         bluetooth: bluetooth.unwrap_or(fallback.bluetooth),

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Settings has a Screen Filter in CONFIGS, LCD or SHARP, changed with Left and Right. LCD is the
+  picture as it always was, a Game Boy or a GBA game through the LCD mask wherever the console's
+  screen holds it. SHARP takes every game off the mask, each pixel kept square. A SNES or
+  PlayStation game, never drawn through the mask, looks the same either way.
+
 ## omega-zero 1.2.0
 
 Supafaust runs SNES games, a game that takes the console down can no longer trap it at boot, and

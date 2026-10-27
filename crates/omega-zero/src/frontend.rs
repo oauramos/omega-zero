@@ -321,7 +321,7 @@ impl Frontend {
             Some((p, size)) if p == platform => size,
             _ => platform.picture(),
         };
-        let screen = crate::video_mode::screen_for(platform, self.session.app().video_mode, size);
+        let screen = self.session.app().screen_for(size);
         compositor.set_game_view(screen.view);
         compositor.set_still_view(screen.still);
         let picture = crate::video_mode::picture_rect(platform, screen.view);

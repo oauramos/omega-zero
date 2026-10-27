@@ -55,7 +55,8 @@ is the most useful thing you can send.
   Advance Wars, Mario Kart and Tetris.
 - Settings on START, in windows in the style of Mega Man Zero's menus that slide from screen to
   screen, over a background that keeps moving: CONFIGS (Fast Forward, Fast Forward Sound, Colour
-  Correction, Rumble, Labels) and GENERAL (Date & Time, Network, Bluetooth, Theme, About).
+  Correction, Screen Filter, Rumble, Labels) and GENERAL (Date & Time, Network, Bluetooth, Theme,
+  About).
 - A tap of SELECT opens CONTROLS: what every button does, on the shelf and in a game, on one panel.
 - Network: home Wi-Fi, network time, and SSH and SFTP, each ON or OFF. Y on one opens its panel:
   SSH's shows the login and root's own random password. Labels are fetched from ScreenScraper,

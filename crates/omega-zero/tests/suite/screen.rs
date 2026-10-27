@@ -299,3 +299,36 @@ fn before_its_first_frame_a_console_game_is_laid_out_for_its_usual_picture() {
         }
     }
 }
+
+#[test]
+fn a_sharp_screen_filter_takes_every_picture_and_its_still_off_the_mask_and_changes_nothing_else() {
+    use omega_store::ScreenFilter;
+    use omega_zero::video_mode::filtered;
+    for c in Canvas::ALL {
+        for platform in Platform::ALL {
+            for mode in MODES {
+                let s = screen_on(c, platform, mode);
+                let at = format!("{}x{} {platform:?} {mode:?}", c.w, c.h);
+                assert_eq!(
+                    filtered(s.clone(), ScreenFilter::Lcd),
+                    s,
+                    "LCD changed {at}"
+                );
+                let sharp = filtered(s.clone(), ScreenFilter::Sharp);
+                assert_eq!(sharp.view.filter, Filter::Sharp, "{at}");
+                assert_eq!(sharp.still.filter, Filter::Sharp, "{at} still");
+                assert_eq!(
+                    (
+                        sharp.view.rect,
+                        sharp.view.uv,
+                        sharp.still.rect,
+                        sharp.still.uv
+                    ),
+                    (s.view.rect, s.view.uv, s.still.rect, s.still.uv),
+                    "SHARP moved {at}"
+                );
+                assert_eq!(sharp.bands, s.bands, "SHARP moved the bands on {at}");
+            }
+        }
+    }
+}

@@ -13,6 +13,7 @@ pub mod ps1;
 mod region;
 mod ring;
 mod scan;
+mod screen_filter;
 pub mod snes;
 mod stamp;
 mod theme;
@@ -34,6 +35,7 @@ pub use platform::Platform;
 pub use region::Region;
 pub use ring::{StateEntry, StateRing, RING_MAX};
 pub use scan::{initial, is_hidden, scan, sort_key, Cart, StoreError};
+pub use screen_filter::ScreenFilter;
 pub use stamp::{
     civil_from_days, days_from_civil, days_in_month, format_stamp, parse_stamp, stamp_now,
 };
